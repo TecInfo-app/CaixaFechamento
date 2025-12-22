@@ -7,16 +7,16 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        // Atualizado as versıes do Firebase SDK para uma mais recente e est·vel
+        // Atualizado as vers√µes do Firebase SDK para uma mais recente e est√°vel
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
         // Importa writeBatch aqui
         import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
         // ====================================================================================
-        // COLOQUE AS CONFIGURA«’ES DO SEU PROJETO FIREBASE AQUI
-        // VocÍ pode encontrar isso no console do Firebase: ConfiguraÁıes do Projeto -> Suas Apps
-        // Certifique-se de que a autenticaÁ„o por "E-mail/Senha" e o Firestore estejam habilitados.
+        // COLOQUE AS CONFIGURA√á√ïES DO SEU PROJETO FIREBASE AQUI
+        // Voc√™ pode encontrar isso no console do Firebase: Configura√ß√µes do Projeto -> Suas Apps
+        // Certifique-se de que a autentica√ß√£o por "E-mail/Senha" e o Firestore estejam habilitados.
         // ====================================================================================
         const firebaseConfig = {
   apiKey: "AIzaSyBPdzYRXPU6Uy8b9UxGD04Jzd6DOz682hk",
@@ -27,25 +27,25 @@
   appId: "1:879178228794:web:aa474188b7ecab07fa0103"
 };
         // ====================================================================================
-        // FIM DAS CONFIGURA«’ES DO FIREBASE
+        // FIM DAS CONFIGURA√á√ïES DO FIREBASE
         // ====================================================================================
 
-        // V¡RIAVEIS GLOBAIS DO FIREBASE
+        // V√ÅRIAVEIS GLOBAIS DO FIREBASE
         let app;
         let db;
         let auth;
-        let userId = null; // Ser· definido apÛs o login
+        let userId = null; // Ser√° definido ap√≥s o login
 
         // Inicializa o Firebase
         app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
 
-        // Exporta as vari·veis para serem usadas no escopo global do script principal
+        // Exporta as vari√°veis para serem usadas no escopo global do script principal
         window.firebaseApp = app;
         window.firebaseDb = db;
         window.firebaseAuth = auth;
-        window.firebaseUserId = userId; // Inicialmente null, ser· atualizado
+        window.firebaseUserId = userId; // Inicialmente null, ser√° atualizado
         window.onAuthStateChanged = onAuthStateChanged; // Exporta para o script principal
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
         window.signOut = signOut;
@@ -67,14 +67,14 @@
     </script>
 
     <style>
-        /* Estilos CSS do layout Padr„o: Define o visual padr„o do aplicativo */
+        /* Estilos CSS do layout Padr√£o: Define o visual padr√£o do aplicativo */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f7fa;
             margin: 0;
             padding: 20px;
             color: #333;
-            transition: background-color 0.3s, color 0.3s; /* TransiÁ„o suave para mudanÁas de layout */
+            transition: background-color 0.3s, color 0.3s; /* Transi√ß√£o suave para mudan√ßas de layout */
         }
         
         .container {
@@ -175,7 +175,7 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            position: relative; /* Para posicionar o bot„o de exclus„o */
+            position: relative; /* Para posicionar o bot√£o de exclus√£o */
         }
         
         .motoboy-block:hover {
@@ -206,7 +206,7 @@
             background-color: #e74c3c;
             color: white;
             border: none;
-            border-radius: 50%; /* Torna o bot„o redondo */
+            border-radius: 50%; /* Torna o bot√£o redondo */
             width: 20px;
             height: 20px;
             font-size: 12px;
@@ -275,14 +275,14 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
-            flex-wrap: wrap; /* Permite que os botıes quebrem a linha em telas menores */
+            flex-wrap: wrap; /* Permite que os bot√µes quebrem a linha em telas menores */
         }
         
-        /* Estilos para diminuir os botıes na linha de aÁıes */
+        /* Estilos para diminuir os bot√µes na linha de a√ß√µes */
         .action-buttons button {
             flex: 1;
-            padding: 8px 15px; /* DiminuÌdo o padding */
-            font-size: 14px; /* DiminuÌdo o tamanho da fonte */
+            padding: 8px 15px; /* Diminu√≠do o padding */
+            font-size: 14px; /* Diminu√≠do o tamanho da fonte */
         }
         
         .clear-btn {
@@ -396,7 +396,7 @@
             width: 100px;
         }
         
-        /* Estilos especÌficos para impress„o individual e total */
+        /* Estilos espec√≠ficos para impress√£o individual e total */
         @media print {
             body * {
                 visibility: hidden;
@@ -545,7 +545,7 @@
         }
 
         .whatsapp-icon {
-            width: 30px; /* Tamanho do Ìcone */
+            width: 30px; /* Tamanho do √≠cone */
             height: 30px;
             vertical-align: middle;
             margin-left: 10px;
@@ -607,7 +607,7 @@
             border-color: #888;
         }
         body.layout-dark .motoboy-block.ifood {
-            border-color: #e74c3c; /* mantÈm a borda vermelha */
+            border-color: #e74c3c; /* mant√©m a borda vermelha */
             background-color: #4a302e; /* fundo escuro avermelhado */
         }
         body.layout-dark .fee-option {
@@ -798,7 +798,7 @@
             border-bottom-color: #e0e0e0;
         }
 
-        /* Bot„o de mudar layout */
+        /* Bot√£o de mudar layout */
         .layout-changer-container {
             text-align: right;
             margin-bottom: 20px;
@@ -817,7 +817,7 @@
             background-color: #5a6268;
         }
 
-        /* Estilos para a seÁ„o de login: Define como a tela de login aparecer· */
+        /* Estilos para a se√ß√£o de login: Define como a tela de login aparecer√° */
         .auth-section {
             display: flex;
             flex-direction: column;
@@ -860,7 +860,7 @@
             text-decoration: underline;
         }
 
-        /* Estilo para a mensagem de boas-vindas e bot„o de logout no cabeÁalho */
+        /* Estilo para a mensagem de boas-vindas e bot√£o de logout no cabe√ßalho */
         .header-info {
             display: flex;
             justify-content: space-between;
@@ -879,7 +879,7 @@
         .header-info button {
             padding: 5px 10px;
             font-size: 13px;
-            background-color: #e74c3c; /* Cor para o bot„o de logout */
+            background-color: #e74c3c; /* Cor para o bot√£o de logout */
         }
         .header-info button:hover {
             background-color: #c0392b;
@@ -892,7 +892,7 @@
             border-bottom-color: #555;
         }
 
-        /* Estilos para a seleÁ„o de loja */
+        /* Estilos para a sele√ß√£o de loja */
         .store-selection-grid {
             display: flex;
             gap: 15px;
@@ -1203,9 +1203,9 @@
 </head>
 <body>
     <div class="container">
-        <!-- SeÁ„o de AutenticaÁ„o (Login/Registro) -->
+        <!-- Se√ß√£o de Autentica√ß√£o (Login/Registro) -->
         <div id="authSection" class="auth-section">
-            <!-- Formul·rio de Login -->
+            <!-- Formul√°rio de Login -->
             <div id="loginForm" class="auth-form">
                 <h2>Login</h2>
                 <div class="form-group">
@@ -1218,10 +1218,10 @@
                 </div>
                 <button type="button" id="loginBtn">Entrar</button>
                 <div class="error-message" id="loginError" style="margin-top: 15px;"></div>
-                <p class="toggle-auth-mode" id="showRegisterForm">N„o tem uma conta? Crie uma aqui.</p>
+                <p class="toggle-auth-mode" id="showRegisterForm">N√£o tem uma conta? Crie uma aqui.</p>
             </div>
 
-            <!-- Formul·rio de Registro (inicialmente oculto) -->
+            <!-- Formul√°rio de Registro (inicialmente oculto) -->
             <div id="registerForm" class="auth-form" style="display: none;">
                 <h2>Registrar Nova Conta</h2>
                 <div class="form-group">
@@ -1234,17 +1234,17 @@
                 </div>
                 <button type="button" id="registerBtn">Registrar</button>
                 <div class="error-message" id="registerError" style="margin-top: 15px;"></div>
-                <p class="toggle-auth-mode" id="showLoginForm">J· tem uma conta? FaÁa login.</p>
+                <p class="toggle-auth-mode" id="showLoginForm">J√° tem uma conta? Fa√ßa login.</p>
             </div>
         </div>
 
-        <!-- SeÁ„o Principal do Aplicativo -->
+        <!-- Se√ß√£o Principal do Aplicativo -->
         <div id="mainAppSection" style="display: none;">
             <div class="layout-changer-container">
                 <button type="button" id="toggleLayoutBtn" class="layout-changer-button">Mudar Layout</button>
             </div>
 
-            <!-- InformaÁıes do cabeÁalho -->
+            <!-- Informa√ß√µes do cabe√ßalho -->
             <div class="header-info">
                 <p id="welcomeUser"></p>
                 <button type="button" id="logoutBtn">Sair</button>
@@ -1252,15 +1252,15 @@
 
             <h1>Controle de Entregas - Motoboys</h1>
             
-            <!-- Mensagens de sucesso ou erro (ocultas por padr„o) -->
+            <!-- Mensagens de sucesso ou erro (ocultas por padr√£o) -->
             <div class="success-message" id="successMessage">
                 </div>
             
             <form id="deliveryForm">
                 <div class="form-group">
-                    <label for="orderNumber" class="required">N˙mero do Pedido</label>
+                    <label for="orderNumber" class="required">N√∫mero do Pedido</label>
                     <input type="number" id="orderNumber" required inputmode="numeric" pattern="[0-9]*">
-                    <div class="error-message" id="orderNumberError">Por favor, informe o n˙mero do pedido</div>
+                    <div class="error-message" id="orderNumberError">Por favor, informe o n√∫mero do pedido</div>
                 </div>
                 
                 <div class="form-group">
@@ -1285,7 +1285,7 @@
                 <div class="form-group">
                     <label class="required">Selecione o Entregador</label>
                     <div class="motoboy-grid" id="motoboyGrid">
-                        <!-- Motoboys ser„o carregados dinamicamente aqui -->
+                        <!-- Motoboys ser√£o carregados dinamicamente aqui -->
                     </div>
                     <div class="error-message" id="deliveryPersonError">Por favor, selecione um entregador</div>
                 </div>
@@ -1314,12 +1314,12 @@
             <div class="search-section">
                 <div class="collapsible-header" data-target="searchContent">
                     <h2>Pesquisar Pedido</h2>
-                    <span class="collapse-icon">&#9658;</span> <!-- Tri‚ngulo para a direita -->
+                    <span class="collapse-icon">&#9658;</span> <!-- Tri√¢ngulo para a direita -->
                 </div>
                 <div id="searchContent" class="collapsible-content collapsed">
                     <div class="form-group">
-                        <label for="searchOrderInput">N˙mero do Pedido</label>
-                        <input type="text" id="searchOrderInput" placeholder="Digite o n˙mero do pedido">
+                        <label for="searchOrderInput">N√∫mero do Pedido</label>
+                        <input type="text" id="searchOrderInput" placeholder="Digite o n√∫mero do pedido">
                     </div>
                     <div class="search-buttons">
                         <button type="button" id="searchOrderBtn">Pesquisar</button>
@@ -1333,7 +1333,7 @@
             <div class="filter-section">
                 <div class="collapsible-header" data-target="filterContent">
                     <h2>Filtrar por Loja</h2>
-                    <span class="collapse-icon">&#9658;</span> <!-- Tri‚ngulo para a direita -->
+                    <span class="collapse-icon">&#9658;</span> <!-- Tri√¢ngulo para a direita -->
                 </div>
                 <div id="filterContent" class="collapsible-content collapsed">
                     <div class="form-group">
@@ -1354,7 +1354,7 @@
                     <thead>
                         <tr>
                             <th class="date-column">Data</th>
-                            <!-- CabeÁalhos dos motoboys ser„o gerados dinamicamente -->
+                            <!-- Cabe√ßalhos dos motoboys ser√£o gerados dinamicamente -->
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -1364,12 +1364,12 @@
         </div>
     </div>
 
-    <!-- Modal para seleÁ„o de perÌodo de impress„o -->
+    <!-- Modal para sele√ß√£o de per√≠odo de impress√£o -->
     <div id="printDateModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
         <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 400px; max-width: 90%;">
-            <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">Selecione o PerÌodo para Impress„o</h3>
+            <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">Selecione o Per√≠odo para Impress√£o</h3>
             <div class="form-group">
-                <label for="startDateInput">Data de InÌcio (opcional)</label>
+                <label for="startDateInput">Data de In√≠cio (opcional)</label>
                 <input type="date" id="startDateInput">
             </div>
             <div class="form-group">
@@ -1394,7 +1394,7 @@
                 <div class="error-message" id="motoboyNameError"></div>
             </div>
             <div class="form-group">
-                <label for="motoboyWhatsappInput">WhatsApp (apenas n˙meros)</label>
+                <label for="motoboyWhatsappInput">WhatsApp (apenas n√∫meros)</label>
                 <input type="number" id="motoboyWhatsappInput" placeholder="Ex: 5581999999999">
                 <div class="error-message" id="motoboyWhatsappError"></div>
             </div>
@@ -1422,7 +1422,7 @@
         </div>
     </div>
     
-    <!-- Input de arquivo oculto para importaÁ„o de dados -->
+    <!-- Input de arquivo oculto para importa√ß√£o de dados -->
     <input type="file" id="importFileInput" style="display: none;" accept=".json">
 
     <!-- Floating Action Menu -->
@@ -1439,34 +1439,34 @@
 
     <!-- Script principal do aplicativo (Colocado no final do body para garantir que o DOM esteja pronto) -->
     <script>
-        // Vari·veis globais para dados do aplicativo
+        // Vari√°veis globais para dados do aplicativo
         let deliveries = []; // Armazena os dados de entregas
         let registeredMotoboys = []; // Armazena os motoboys cadastrados
         let currentMotoboy = null; 
         let currentFee = null;    
         let currentStore = "Cia do Chopp"; 
 
-        // Mapeamento de nomes de motoboys para n˙meros de WhatsApp (ser· preenchido dinamicamente)
+        // Mapeamento de nomes de motoboys para n√∫meros de WhatsApp (ser√° preenchido dinamicamente)
         let WHATSAPP_NUMBERS = {};
 
-        // Vari·veis Firebase (acessadas via window.firebase...)
+        // Vari√°veis Firebase (acessadas via window.firebase...)
         let app, db, auth, userId;
         let appId; // Declarar appId globalmente
         let unsubscribeDeliveries = null; // Para desinscrever listeners do Firestore
         let unsubscribeMotoboys = null; // Para desinscrever listeners do Firestore
 
         // ====================================================================================
-        // FUN«’ES DE UTILIDADE
+        // FUN√á√ïES DE UTILIDADE
         // ====================================================================================
 
-        // FunÁ„o para exibir mensagens customizadas (alert ou confirm)
+        // Fun√ß√£o para exibir mensagens customizadas (alert ou confirm)
         function showCustomMessageBox(message, type, callback) {
             const messageBox = document.getElementById('customMessageBox');
             const messageBoxText = document.getElementById('messageBoxText');
             const messageBoxButtons = document.getElementById('messageBoxButtons');
 
             messageBoxText.textContent = message;
-            messageBoxButtons.innerHTML = ''; // Limpa botıes anteriores
+            messageBoxButtons.innerHTML = ''; // Limpa bot√µes anteriores
 
             if (type === 'alert') {
                 const okBtn = document.createElement('button');
@@ -1500,7 +1500,7 @@
             messageBox.style.display = 'flex';
         }
 
-        // FunÁ„o para exibir mensagens de sucesso
+        // Fun√ß√£o para exibir mensagens de sucesso
         function showSuccessMessage(message) {
             const successMessage = document.getElementById('successMessage');
             if (!successMessage) return; 
@@ -1511,7 +1511,7 @@
             }, 3000); 
         }
         
-        // FunÁ„o para exibir mensagens de erro para inputs
+        // Fun√ß√£o para exibir mensagens de erro para inputs
         function displayError(elementId, message) {
             const errorElement = document.getElementById(elementId);
             if (!errorElement) return; 
@@ -1519,7 +1519,7 @@
             errorElement.style.display = 'block';
         }
         
-        // FunÁ„o para ocultar todas as mensagens de erro
+        // Fun√ß√£o para ocultar todas as mensagens de erro
         function hideAllErrors() {
             document.querySelectorAll('.error-message').forEach(error => {
                 error.style.display = 'none';
@@ -1528,12 +1528,12 @@
             document.getElementById('registerError').style.display = 'none';
         }
 
-        // FunÁ„o para obter a data para ordenaÁ„o (prioriza timestamp, fallback para string)
+        // Fun√ß√£o para obter a data para ordena√ß√£o (prioriza timestamp, fallback para string)
         function getDateForSorting(delivery) {
             if (delivery.timestamp) {
                 return new Date(delivery.timestamp);
             }
-            // Fallback para datas antigas que podem n„o ter timestamp
+            // Fallback para datas antigas que podem n√£o ter timestamp
             const parts = delivery.date.split(' ');
             const datePart = parts[1]; // e.g., "24/07/2024"
             const timePart = parts[2] || "00:00:00"; // e.g., "10:30:00", default to midnight if time is missing
@@ -1546,7 +1546,7 @@
         }
 
         // ====================================================================================
-        // FUN«’ES DE AUTENTICA«√O FIREBASE
+        // FUN√á√ïES DE AUTENTICA√á√ÉO FIREBASE
         // ====================================================================================
 
         async function loginUser(email, password) {
@@ -1557,9 +1557,9 @@
             } catch (error) {
                 let errorMessage = "Erro ao fazer login. Verifique seu e-mail e senha.";
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    errorMessage = "E-mail ou senha inv·lidos.";
+                    errorMessage = "E-mail ou senha inv√°lidos.";
                 } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "Formato de e-mail inv·lido.";
+                    errorMessage = "Formato de e-mail inv√°lido.";
                 }
                 displayError('loginError', errorMessage);
                 console.error("Erro de login:", error);
@@ -1570,16 +1570,16 @@
             hideAllErrors();
             try {
                 const userCredential = await window.createUserWithEmailAndPassword(auth, email, password);
-                showSuccessMessage("Conta criada com sucesso! VocÍ foi logado automaticamente.");
+                showSuccessMessage("Conta criada com sucesso! Voc√™ foi logado automaticamente.");
                 // User is signed in. onAuthStateChanged will handle UI update.
             } catch (error) {
                 let errorMessage = "Erro ao criar conta.";
                 if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = "Este e-mail j· est· em uso.";
+                    errorMessage = "Este e-mail j√° est√° em uso.";
                 } else if (error.code === 'auth/weak-password') {
                     errorMessage = "A senha deve ter pelo menos 6 caracteres.";
                 } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "Formato de e-mail inv·lido.";
+                    errorMessage = "Formato de e-mail inv√°lido.";
                 }
                 displayError('registerError', errorMessage);
                 console.error("Erro de registro:", error);
@@ -1597,7 +1597,7 @@
         }
 
         // ====================================================================================
-        // FUN«’ES DE PERSIST NCIA DE DADOS (FIRESTORE)
+        // FUN√á√ïES DE PERSIST√äNCIA DE DADOS (FIRESTORE)
         // ====================================================================================
 
         // Listener para entregas
@@ -1605,7 +1605,7 @@
             if (unsubscribeDeliveries) {
                 unsubscribeDeliveries(); // Desinscreve o listener anterior
             }
-            if (!userId || !appId) return; // Verifica se appId est· definido
+            if (!userId || !appId) return; // Verifica se appId est√° definido
 
             const deliveriesColRef = window.collection(db, `artifacts/${appId}/users/${userId}/deliveries`);
             unsubscribeDeliveries = window.onSnapshot(deliveriesColRef, (snapshot) => {
@@ -1614,7 +1614,7 @@
                 updatePrintAndExportButtonState();
             }, (error) => {
                 console.error("Erro ao carregar entregas em tempo real:", error);
-                showCustomMessageBox("Erro ao carregar entregas. Por favor, recarregue a p·gina.", 'alert');
+                showCustomMessageBox("Erro ao carregar entregas. Por favor, recarregue a p√°gina.", 'alert');
             });
         }
 
@@ -1623,7 +1623,7 @@
             if (unsubscribeMotoboys) {
                 unsubscribeMotoboys(); // Desinscreve o listener anterior
             }
-            if (!userId || !appId) return; // Verifica se appId est· definido
+            if (!userId || !appId) return; // Verifica se appId est√° definido
 
             const motoboysColRef = window.collection(db, `artifacts/${appId}/users/${userId}/motoboys`);
             unsubscribeMotoboys = window.onSnapshot(motoboysColRef, (snapshot) => {
@@ -1634,23 +1634,23 @@
                 });
                 renderMotoboyGrid();
                 renderExistingMotoboysInModal();
-                updateTable(); // Atualiza a tabela para refletir as mudanÁas nos motoboys
+                updateTable(); // Atualiza a tabela para refletir as mudan√ßas nos motoboys
             }, (error) => {
                 console.error("Erro ao carregar motoboys em tempo real:", error);
-                showCustomMessageBox("Erro ao carregar entregadores. Por favor, recarregue a p·gina.", 'alert');
+                showCustomMessageBox("Erro ao carregar entregadores. Por favor, recarregue a p√°gina.", 'alert');
             });
         }
 
         async function addDelivery(newDelivery) {
             if (!userId || !appId) {
-                showCustomMessageBox("VocÍ precisa estar logado para adicionar entregas.", 'alert');
+                showCustomMessageBox("Voc√™ precisa estar logado para adicionar entregas.", 'alert');
                 return;
             }
 
-            // ValidaÁ„o de n˙mero de pedido duplicado
+            // Valida√ß√£o de n√∫mero de pedido duplicado
             const isDuplicate = deliveries.some(d => d.orderNumber === newDelivery.orderNumber);
             if (isDuplicate) {
-                displayError('orderNumberError', 'Este n˙mero de pedido j· existe. Por favor, insira um n˙mero ˙nico.');
+                displayError('orderNumberError', 'Este n√∫mero de pedido j√° existe. Por favor, insira um n√∫mero √∫nico.');
                 return;
             }
 
@@ -1663,7 +1663,7 @@
                     orderNumber: newDelivery.orderNumber,
                     fee: newDelivery.fee,
                     store: newDelivery.store,
-                    timestamp: Date.now() // Adiciona o timestamp para ordenaÁ„o precisa
+                    timestamp: Date.now() // Adiciona o timestamp para ordena√ß√£o precisa
                 });
                 showSuccessMessage(`Pedido cadastrado com sucesso para ${newDelivery.motoboy}!`); 
                 resetForm(); 
@@ -1675,7 +1675,7 @@
 
         async function deleteDelivery(idToDelete) {
             if (!userId || !appId) {
-                showCustomMessageBox("VocÍ precisa estar logado para remover entregas.", 'alert');
+                showCustomMessageBox("Voc√™ precisa estar logado para remover entregas.", 'alert');
                 return;
             }
             showCustomMessageBox('Tem certeza que deseja remover este pedido?', 'confirm', async (result) => {
@@ -1694,7 +1694,7 @@
 
         async function addMotoboy(newMotoboy) {
             if (!userId || !appId) {
-                showCustomMessageBox("VocÍ precisa estar logado para adicionar entregadores.", 'alert');
+                showCustomMessageBox("Voc√™ precisa estar logado para adicionar entregadores.", 'alert');
                 return;
             }
             try {
@@ -1714,10 +1714,10 @@
 
         async function deleteMotoboy(motoboyId, motoboyName) {
             if (!userId || !appId) {
-                showCustomMessageBox("VocÍ precisa estar logado para excluir entregadores.", 'alert');
+                showCustomMessageBox("Voc√™ precisa estar logado para excluir entregadores.", 'alert');
                 return;
             }
-            showCustomMessageBox(`Tem certeza que deseja excluir o entregador ${motoboyName}? Todas as entregas associadas a ele tambÈm ser„o removidas.`, 'confirm', async (result) => {
+            showCustomMessageBox(`Tem certeza que deseja excluir o entregador ${motoboyName}? Todas as entregas associadas a ele tamb√©m ser√£o removidas.`, 'confirm', async (result) => {
                 if (result) {
                     try {
                         // Excluir motoboy
@@ -1744,10 +1744,10 @@
         }
 
         // ====================================================================================
-        // FUN«’ES DE UI E L”GICA DO APP
+        // FUN√á√ïES DE UI E L√ìGICA DO APP
         // ====================================================================================
 
-        // FunÁ„o para atualizar o estado dos botıes de impress„o/exportaÁ„o com base na existÍncia de dados
+        // Fun√ß√£o para atualizar o estado dos bot√µes de impress√£o/exporta√ß√£o com base na exist√™ncia de dados
         function updatePrintAndExportButtonState() {
             const printAllBtnFab = document.getElementById('printAllBtn');
             const exportDataBtnFab = document.getElementById('exportDataBtn');
@@ -1756,14 +1756,14 @@
             if (exportDataBtnFab) exportDataBtnFab.disabled = !hasDeliveries;
         }
 
-        // FunÁ„o para remover todos os destaques de pedidos na tabela
+        // Fun√ß√£o para remover todos os destaques de pedidos na tabela
         function clearAllHighlights() {
             document.querySelectorAll('.delivery-item.highlighted-delivery').forEach(item => {
                 item.classList.remove('highlighted-delivery');
             });
         }
 
-        // FunÁ„o para atualizar a tabela de registro de entregas na UI
+        // Fun√ß√£o para atualizar a tabela de registro de entregas na UI
         function updateTable(filterStore = document.getElementById('storeFilter')?.value || 'all') {
             const tableBody = document.getElementById('tableBody');
             if (!tableBody) return; 
@@ -1830,7 +1830,7 @@
             }, {});
         
             const sortedDates = Object.keys(deliveriesByDate).sort((a, b) => {
-                // Ordena os dias para garantir que as linhas da tabela estejam em ordem cronolÛgica de dia
+                // Ordena os dias para garantir que as linhas da tabela estejam em ordem cronol√≥gica de dia
                 const [dayA, monthA, yearA] = a.split('/').map(Number);
                 const [dayB, monthB, yearB] = b.split('/').map(Number);
                 const dateA = new Date(yearA, monthA - 1, dayA);
@@ -1849,14 +1849,14 @@
         
                 motoboys.forEach(motoboy => {
                     const cell = row.insertCell();
-                    // Garante que as entregas dentro da cÈlula tambÈm estejam ordenadas cronologicamente
+                    // Garante que as entregas dentro da c√©lula tamb√©m estejam ordenadas cronologicamente
                     const motoboyDeliveries = (deliveriesByDate[date][motoboy] || []).sort((a,b) => {
                         const dateA = getDateForSorting(a);
                         const dateB = getDateForSorting(b);
                         if (dateA - dateB !== 0) {
                             return dateA - dateB;
                         }
-                        return a.id.localeCompare(b.id); // OrdenaÁ„o secund·ria por ID
+                        return a.id.localeCompare(b.id); // Ordena√ß√£o secund√°ria por ID
                     }); 
         
                     motoboyDeliveries.forEach(delivery => {
@@ -1866,7 +1866,7 @@
         
                         const orderSpan = document.createElement('span');
                         orderSpan.classList.add('delivery-order');
-                        // Removida a exibiÁ„o da hora aqui
+                        // Removida a exibi√ß√£o da hora aqui
                         orderSpan.textContent = `Pedido: ${delivery.orderNumber} (${delivery.store})`; 
                         deliveryItem.appendChild(orderSpan);
         
@@ -1897,7 +1897,7 @@
             });
         }
 
-        // FunÁ„o para renderizar a grade de motoboys dinamicamente (para seleÁ„o)
+        // Fun√ß√£o para renderizar a grade de motoboys dinamicamente (para sele√ß√£o)
         function renderMotoboyGrid() {
             const motoboyGrid = document.getElementById('motoboyGrid');
             if (!motoboyGrid) return;
@@ -1938,7 +1938,7 @@
             });
         }
 
-        // FunÁ„o para renderizar a lista de motoboys existentes no modal de cadastro
+        // Fun√ß√£o para renderizar a lista de motoboys existentes no modal de cadastro
         function renderExistingMotoboysInModal() {
             const existingMotoboysList = document.getElementById('existingMotoboysList');
             if (!existingMotoboysList) return;
@@ -1962,7 +1962,7 @@
             });
         }
             
-        // FunÁ„o para resetar o formul·rio apÛs adicionar uma entrega
+        // Fun√ß√£o para resetar o formul√°rio ap√≥s adicionar uma entrega
         function resetForm() {
             document.getElementById('orderNumber').value = '';
             document.querySelectorAll('.motoboy-block').forEach(b => b.classList.remove('selected'));
@@ -1977,7 +1977,7 @@
             currentStore = "Cia do Chopp"; 
         }
 
-        // FunÁ„o para gerar e imprimir um relatÛrio de entregas por motoboy
+        // Fun√ß√£o para gerar e imprimir um relat√≥rio de entregas por motoboy
         function printMotoboyReport(motoboyName) {
             const activeStoreFilter = document.getElementById('storeFilter').value; 
             let reportContent = '';
@@ -1988,7 +1988,7 @@
             const motoboyDeliveries = deliveries.filter(d => 
                 d.motoboy === motoboyName && 
                 (activeStoreFilter === 'all' || d.store === activeStoreFilter)
-            ).sort((a, b) => getDateForSorting(a) - getDateForSorting(b)); // Ordena pela data e hora de lanÁamento
+            ).sort((a, b) => getDateForSorting(a) - getDateForSorting(b)); // Ordena pela data e hora de lan√ßamento
 
             motoboyDeliveries.forEach(delivery => {
                 reportContent += `
@@ -2005,7 +2005,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>RelatÛrio de Entregas - ${motoboyName}</title>
+                    <title>Relat√≥rio de Entregas - ${motoboyName}</title>
                     <style>
                         body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                         .print-area {
@@ -2047,9 +2047,9 @@
                 </head>
                 <body>
                     <div class="print-area">
-                        <h2 class="print-header">RelatÛrio de Entregas</h2>
+                        <h2 class="print-header">Relat√≥rio de Entregas</h2>
                         <h3 class="print-header">${motoboyName}</h3>
-                        <p class="print-header">Data de Impress„o: ${currentDateTimeText}</p>
+                        <p class="print-header">Data de Impress√£o: ${currentDateTimeText}</p>
                         ${activeStoreFilter !== 'all' ? `<p class="print-header">Loja: ${activeStoreFilter}</p>` : ''}
                         <ul class="print-list">
                             ${reportContent}
@@ -2069,7 +2069,7 @@
             printWindow.print(); 
         }
 
-        // FunÁ„o para gerar e imprimir um relatÛrio de totais por motoboy e loja
+        // Fun√ß√£o para gerar e imprimir um relat√≥rio de totais por motoboy e loja
         function printMotoboyTotalsReport(motoboyName) {
             let ciaDoChoppOrders = 0;
             let ciaDoChoppFees = 0;
@@ -2106,7 +2106,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>RelatÛrio de Totais - ${motoboyName}</title>
+                    <title>Relat√≥rio de Totais - ${motoboyName}</title>
                     <style>
                         body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                         .print-area {
@@ -2150,9 +2150,9 @@
                 </head>
                 <body>
                     <div class="print-area">
-                        <h2 class="print-header">RelatÛrio de Totais por Loja</h2>
+                        <h2 class="print-header">Relat√≥rio de Totais por Loja</h2>
                         <h3 class="print-header">Motoboy: ${motoboyName}</h3>
-                        <p class="print-header">Data de Impress„o: ${currentDateTimeText}</p>
+                        <p class="print-header">Data de Impress√£o: ${currentDateTimeText}</p>
 
                         <div class="summary-section">
                             <h4>Cia do Chopp</h4>
@@ -2213,7 +2213,7 @@
             printWindow.print();
         }
         
-        // FunÁ„o para gerar e imprimir um relatÛrio completo de todas as entregas (ou filtradas)
+        // Fun√ß√£o para gerar e imprimir um relat√≥rio completo de todas as entregas (ou filtradas)
         function performPrintAll(dataToPrint, dateRangeText, storeFilter) {
             const motoboys = registeredMotoboys.map(m => m.name).sort(); 
             let overallTotal = 0; 
@@ -2256,7 +2256,7 @@
                 }, {});
 
                 const sortedDatesForStore = Object.keys(deliveriesByDateForStore).sort((a, b) => {
-                    // Ordena as datas para garantir que as linhas da tabela estejam em ordem cronolÛgica de dia
+                    // Ordena as datas para garantir que as linhas da tabela estejam em ordem cronol√≥gica de dia
                     const [dayA, monthA, yearA] = a.split('/').map(Number);
                     const [dayB, monthB, yearB] = b.split('/').map(Number);
                     const dateA = new Date(yearA, monthA - 1, dayA);
@@ -2277,7 +2277,7 @@
                                                         if (dateA - dateB !== 0) {
                                                             return dateA - dateB;
                                                         }
-                                                        return a.id.localeCompare(b.id); // OrdenaÁ„o secund·ria por ID
+                                                        return a.id.localeCompare(b.id); // Ordena√ß√£o secund√°ria por ID
                                                     }) : []; 
                         let dailyMotoboyTotal = 0;
 
@@ -2359,7 +2359,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>RelatÛrio Completo de Entregas</title>
+                    <title>Relat√≥rio Completo de Entregas</title>
                     <style>
                         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
                         .print-area {
@@ -2442,7 +2442,7 @@
                 </head>
                 <body>
                     <div class="print-area">
-                        <h2 class="print-header-info">RelatÛrio Completo de Entregas</h2>
+                        <h2 class="print-header-info">Relat√≥rio Completo de Entregas</h2>
                         <h3 class="print-header-info">${dateRangeText}</h3>
                         ${storeFilter !== 'all' ? `<h3 class="print-header-info">Loja: ${storeFilter}</h3>` : ''}
                         
@@ -2462,7 +2462,7 @@
             printWindow.print();
         }
 
-        // FunÁ„o para exportar os dados para um arquivo JSON (operando em memÛria)
+        // Fun√ß√£o para exportar os dados para um arquivo JSON (operando em mem√≥ria)
         function exportDeliveriesToBlob() {
             const dataToExport = {
                 deliveries: deliveries,
@@ -2470,7 +2470,7 @@
             };
 
             if (dataToExport.deliveries.length === 0 && dataToExport.registeredMotoboys.length === 0) {
-                showCustomMessageBox('N„o h· dados para exportar.', 'alert');
+                showCustomMessageBox('N√£o h√° dados para exportar.', 'alert');
                 return null;
             }
 
@@ -2481,7 +2481,7 @@
             return { blob, fileName };
         }
 
-        // FunÁ„o para acionar o download do arquivo de backup
+        // Fun√ß√£o para acionar o download do arquivo de backup
         function downloadBackup() {
             const exportedData = exportDeliveriesToBlob();
             if (exportedData) {
@@ -2497,7 +2497,7 @@
             }
         }
 
-        // FunÁ„o para importar dados de um arquivo JSON (e salvar no Firestore)
+        // Fun√ß√£o para importar dados de um arquivo JSON (e salvar no Firestore)
         function importDeliveries(event) {
             const file = event.target.files[0];
             if (!file) {
@@ -2505,7 +2505,7 @@
             }
 
             if (file.type !== 'application/json') {
-                showCustomMessageBox('Por favor, selecione um arquivo JSON v·lido (.json).', 'alert');
+                showCustomMessageBox('Por favor, selecione um arquivo JSON v√°lido (.json).', 'alert');
                 document.getElementById('importFileInput').value = ''; 
                 return;
             }
@@ -2523,9 +2523,9 @@
                     );
 
                     if (isValidImport) {
-                        showCustomMessageBox("Deseja substituir os dados atuais ou adicionar os novos dados aos existentes?\n\nConfirmar para SUBSTITUIR (apaga os dados atuais)\nCancelar para ADICIONAR (mantÈm os dados atuais e insere os novos)", 'confirm', async (result) => {
+                        showCustomMessageBox("Deseja substituir os dados atuais ou adicionar os novos dados aos existentes?\n\nConfirmar para SUBSTITUIR (apaga os dados atuais)\nCancelar para ADICIONAR (mant√©m os dados atuais e insere os novos)", 'confirm', async (result) => {
                             if (!userId || !appId) {
-                                showCustomMessageBox("VocÍ precisa estar logado para importar dados.", 'alert');
+                                showCustomMessageBox("Voc√™ precisa estar logado para importar dados.", 'alert');
                                 return;
                             }
 
@@ -2551,7 +2551,7 @@
                                     if (!delivery.store) {
                                         delivery.store = "Cia do Chopp"; 
                                     }
-                                    // Adiciona o timestamp se n„o existir (para compatibilidade com dados antigos)
+                                    // Adiciona o timestamp se n√£o existir (para compatibilidade com dados antigos)
                                     if (delivery.date && !delivery.timestamp) {
                                         const [datePart, timePart] = delivery.date.split(' ').slice(1, 3); // Pega apenas a data e a hora
                                         const [day, month, year] = datePart.split('/').map(Number);
@@ -2559,7 +2559,7 @@
                                         const tempDate = new Date(year, month - 1, day, hours, minutes);
                                         delivery.timestamp = tempDate.getTime();
                                     } else if (!delivery.timestamp) {
-                                        delivery.timestamp = Date.now(); // Se n„o tiver data, usa o timestamp atual
+                                        delivery.timestamp = Date.now(); // Se n√£o tiver data, usa o timestamp atual
                                     }
                                     
                                     // Firestore vai gerar um novo ID para cada documento adicionado
@@ -2577,7 +2577,7 @@
                                 // Importar motoboys
                                 const batchMotoboys = window.writeBatch(db); // Usa window.writeBatch(db)
                                 for (const motoboy of importedData.registeredMotoboys) {
-                                    // Verifica se o motoboy j· existe para evitar duplicatas ao adicionar
+                                    // Verifica se o motoboy j√° existe para evitar duplicatas ao adicionar
                                     const q = query(motoboysColRef, where("name", "==", motoboy.name));
                                     const existingMotoboyDocs = await getDocs(q);
                                     if (existingMotoboyDocs.empty) {
@@ -2596,11 +2596,11 @@
                             }
                         });
                     } else {
-                        showCustomMessageBox('Arquivo JSON inv·lido ou formato de dados incorreto.', 'alert');
+                        showCustomMessageBox('Arquivo JSON inv√°lido ou formato de dados incorreto.', 'alert');
                     }
                 } catch (error) {
                     console.error('Erro ao ler ou parsear o arquivo:', error);
-                    showCustomMessageBox('Erro ao ler o arquivo. Certifique-se de que È um arquivo JSON v·lido e n„o est· corrompido.', 'alert'); 
+                    showCustomMessageBox('Erro ao ler o arquivo. Certifique-se de que √© um arquivo JSON v√°lido e n√£o est√° corrompido.', 'alert'); 
                 } finally {
                     document.getElementById('importFileInput').value = ''; 
                 }
@@ -2612,7 +2612,7 @@
             reader.readAsText(file); 
         }
 
-        // FunÁ„o para realizar a busca de pedidos no Firestore
+        // Fun√ß√£o para realizar a busca de pedidos no Firestore
         async function performSearch() {
             const searchTerm = document.getElementById('searchOrderInput').value.trim();
             const searchResultsDiv = document.getElementById('searchResults');
@@ -2623,20 +2623,20 @@
             clearAllHighlights();
 
             if (!searchTerm) {
-                searchResultsDiv.textContent = 'Por favor, digite um n˙mero de pedido para pesquisar.';
+                searchResultsDiv.textContent = 'Por favor, digite um n√∫mero de pedido para pesquisar.';
                 searchResultsDiv.classList.add('not-found');
                 searchResultsDiv.style.display = 'block';
                 return;
             }
             
             if (!userId || !appId) {
-                showCustomMessageBox("VocÍ precisa estar logado para pesquisar pedidos.", 'alert');
+                showCustomMessageBox("Voc√™ precisa estar logado para pesquisar pedidos.", 'alert');
                 return;
             }
 
             try {
                 const deliveriesColRef = collection(db, `artifacts/${appId}/users/${userId}/deliveries`);
-                const q = query(deliveriesColRef, where("orderNumber", "==", parseInt(searchTerm))); // Assume orderNumber È um n˙mero
+                const q = query(deliveriesColRef, where("orderNumber", "==", parseInt(searchTerm))); // Assume orderNumber √© um n√∫mero
                 const querySnapshot = await getDocs(q);
 
                 const foundDeliveries = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2670,7 +2670,7 @@
                             const number = this.getAttribute('data-whatsapp-number');
                             
                             if (number) {
-                                const message = encodeURIComponent(`Ol· ${motoboy}, tudo bem? Gostaria de saber o status de entrega do pedido: ${order}.`);
+                                const message = encodeURIComponent(`Ol√° ${motoboy}, tudo bem? Gostaria de saber o status de entrega do pedido: ${order}.`);
                                 const whatsappUrl = `https://wa.me/${number}?text=${message}`;
                                 window.open(whatsappUrl, '_blank'); 
                             }
@@ -2678,7 +2678,7 @@
                     });
 
                 } else {
-                    searchResultsDiv.textContent = `Pedido "${searchTerm}" n„o encontrado.`;
+                    searchResultsDiv.textContent = `Pedido "${searchTerm}" n√£o encontrado.`;
                     searchResults.classList.add('not-found');
                     searchResultsDiv.style.display = 'block';
                 }
@@ -2690,14 +2690,14 @@
 
         // Garante que o script seja executado apenas quando o DOM estiver completamente carregado
         document.addEventListener('DOMContentLoaded', function() {
-            // Atribui as vari·veis globais do Firebase apÛs o carregamento do mÛdulo
+            // Atribui as vari√°veis globais do Firebase ap√≥s o carregamento do m√≥dulo
             app = window.firebaseApp;
             db = window.firebaseDb;
             auth = window.firebaseAuth;
-            // Define appId aqui, apÛs window.firebaseConfig estar disponÌvel
+            // Define appId aqui, ap√≥s window.firebaseConfig estar dispon√≠vel
             appId = window.firebaseConfig.appId;
 
-            // FunÁ„o para alternar a visibilidade de uma seÁ„o colaps·vel (movida para dentro do DOMContentLoaded)
+            // Fun√ß√£o para alternar a visibilidade de uma se√ß√£o colaps√°vel (movida para dentro do DOMContentLoaded)
             function toggleCollapsibleSection(headerElement) {
                 const targetId = headerElement.getAttribute('data-target');
                 const contentElement = document.getElementById(targetId);
@@ -2718,7 +2718,7 @@
                 }
             }
 
-            // ReferÍncias a elementos do DOM para interaÁ„o
+            // Refer√™ncias a elementos do DOM para intera√ß√£o
             const authSection = document.getElementById('authSection');
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
@@ -2770,12 +2770,12 @@
             const printAllBtn = document.getElementById('printAllBtn');
 
             // Collapsible section headers
-            const collapsibleHeaders = document.querySelectorAll('.collapsible-header'); // Seleciona todos os cabeÁalhos colaps·veis
+            const collapsibleHeaders = document.querySelectorAll('.collapsible-header'); // Seleciona todos os cabe√ßalhos colaps√°veis
             collapsibleHeaders.forEach(header => {
                 header.addEventListener('click', () => toggleCollapsibleSection(header));
             });
 
-            // LÛgica para alternar entre layouts (padr„o, escuro, minimalista)
+            // L√≥gica para alternar entre layouts (padr√£o, escuro, minimalista)
             const layouts = ['', 'layout-dark', 'layout-minimal']; 
             let currentLayoutIndex = parseInt(localStorage.getItem('currentLayoutIndex') || '0');
 
@@ -2821,13 +2821,13 @@
                         // Chama addDelivery diretamente
                         const orderNumber = orderNumberInput.value.trim();
                         if (!orderNumber || !currentMotoboy || currentFee === null || !currentStore) {
-                            displayError('deliveryFeeError', 'Por favor, preencha todos os campos obrigatÛrios.');
+                            displayError('deliveryFeeError', 'Por favor, preencha todos os campos obrigat√≥rios.');
                             return;
                         }
                         const newDelivery = {
                             date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
                             motoboy: currentMotoboy,
-                            orderNumber: parseInt(orderNumber), // Garante que È um n˙mero
+                            orderNumber: parseInt(orderNumber), // Garante que √© um n√∫mero
                             fee: parseFloat(currentFee).toFixed(2),
                             store: currentStore 
                         };
@@ -2838,13 +2838,13 @@
                         // Chama addDelivery diretamente
                         const orderNumber = orderNumberInput.value.trim();
                         if (!orderNumber || !currentMotoboy || currentFee === null || !currentStore) {
-                            displayError('deliveryFeeError', 'Por favor, preencha todos os campos obrigatÛrios.');
+                            displayError('deliveryFeeError', 'Por favor, preencha todos os campos obrigat√≥rios.');
                             return;
                         }
                         const newDelivery = {
                             date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
                             motoboy: currentMotoboy,
-                            orderNumber: parseInt(orderNumber), // Garante que È um n˙mero
+                            orderNumber: parseInt(orderNumber), // Garante que √© um n√∫mero
                             fee: parseFloat(currentFee).toFixed(2),
                             store: currentStore 
                         };
@@ -2860,27 +2860,27 @@
                     // Chama addDelivery diretamente
                     const orderNumber = orderNumberInput.value.trim();
                     if (!orderNumber || !currentMotoboy || currentFee === null || !currentStore) {
-                        displayError('deliveryFeeError', 'Por favor, preencha todos os campos obrigatÛrios.');
+                        displayError('deliveryFeeError', 'Por favor, preencha todos os campos obrigat√≥rios.');
                         return;
                     }
                     const newDelivery = {
                         date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
                         motoboy: currentMotoboy,
-                        orderNumber: parseInt(orderNumber), // Garante que È um n˙mero
+                        orderNumber: parseInt(orderNumber), // Garante que √© um n√∫mero
                         fee: parseFloat(currentFee).toFixed(2),
                         store: currentStore 
                     };
                     addDelivery(newDelivery);
                 } else {
-                    displayError('deliveryFeeError', 'Por favor, insira um valor de taxa v·lido.');
+                    displayError('deliveryFeeError', 'Por favor, insira um valor de taxa v√°lido.');
                 }
             });
             
             clearAllBtn.addEventListener('click', function() {
-                showCustomMessageBox('Tem certeza que deseja limpar todo o registro de entregas e entregadores? Esta aÁ„o È irreversÌvel.', 'confirm', async (result) => {
+                showCustomMessageBox('Tem certeza que deseja limpar todo o registro de entregas e entregadores? Esta a√ß√£o √© irrevers√≠vel.', 'confirm', async (result) => {
                     if (result) {
                         if (!userId || !appId) {
-                            showCustomMessageBox("VocÍ precisa estar logado para limpar os dados.", 'alert');
+                            showCustomMessageBox("Voc√™ precisa estar logado para limpar os dados.", 'alert');
                             return;
                         }
                         try {
@@ -2897,7 +2897,7 @@
 
                             showSuccessMessage('Registro de entregas e entregadores limpo com sucesso!');
                             resetForm(); 
-                            // Listeners do Firestore j· v„o atualizar as vari·veis e a UI
+                            // Listeners do Firestore j√° v√£o atualizar as vari√°veis e a UI
                         } catch (error) {
                             console.error("Erro ao limpar dados:", error);
                             showCustomMessageBox("Erro ao limpar dados. Tente novamente.", 'alert');
@@ -2922,7 +2922,7 @@
                 const activeStoreFilter = storeFilterSelect.value; 
 
                 let deliveriesToPrint = deliveries;
-                let dateRangeText = "Todo o PerÌodo"; 
+                let dateRangeText = "Todo o Per√≠odo"; 
 
                 if (startDateStr || endDateStr) {
                     deliveriesToPrint = deliveries.filter(delivery => {
@@ -2935,7 +2935,7 @@
                     });
 
                     if (startDateStr && endDateStr) {
-                        dateRangeText = `PerÌodo: ${startDateStr.split('-').reverse().join('/')} a ${endDateStr.split('-').reverse().join('/')}`;
+                        dateRangeText = `Per√≠odo: ${startDateStr.split('-').reverse().join('/')} a ${endDateStr.split('-').reverse().join('/')}`;
                     } else if (startDateStr) {
                         dateRangeText = `Data: ${startDateStr.split('-').reverse().join('/')}`;
                     }
@@ -2951,7 +2951,7 @@
             document.getElementById('printAllWithoutDateBtn').addEventListener('click', function() {
                 const activeStoreFilter = storeFilterSelect.value; 
                 const filteredDeliveries = deliveries.filter(d => activeStoreFilter === 'all' || (d.store && d.store === activeStoreFilter));
-                performPrintAll(filteredDeliveries, "Todo o PerÌodo", activeStoreFilter); 
+                performPrintAll(filteredDeliveries, "Todo o Per√≠odo", activeStoreFilter); 
                 document.getElementById('printDateModal').style.display = 'none';
                 document.getElementById('startDateInput').value = '';
                 document.getElementById('endDateInput').value = '';
@@ -2999,9 +2999,9 @@
                     return;
                 }
 
-                // Verifica se o motoboy j· existe antes de adicionar
+                // Verifica se o motoboy j√° existe antes de adicionar
                 if (registeredMotoboys.some(m => m.name === name)) {
-                    displayError('motoboyNameError', 'Este entregador j· est· cadastrado.');
+                    displayError('motoboyNameError', 'Este entregador j√° est√° cadastrado.');
                     return;
                 }
 
@@ -3019,31 +3019,31 @@
             });
 
             // ====================================================================================
-            // INICIALIZA«√O E LISTENERS DE AUTENTICA«√O
+            // INICIALIZA√á√ÉO E LISTENERS DE AUTENTICA√á√ÉO
             // ====================================================================================
 
-            // Listener de estado de autenticaÁ„o
+            // Listener de estado de autentica√ß√£o
             window.onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    // Usu·rio logado
+                    // Usu√°rio logado
                     userId = user.uid;
-                    window.firebaseUserId = userId; // Atualiza a vari·vel global
+                    window.firebaseUserId = userId; // Atualiza a vari√°vel global
                     welcomeUser.textContent = `Bem-vindo(a), ${user.email}!`;
-                    authSection.style.display = 'none'; // Esconde a seÁ„o de autenticaÁ„o
-                    mainAppSection.style.display = 'block'; // Mostra a seÁ„o principal
+                    authSection.style.display = 'none'; // Esconde a se√ß√£o de autentica√ß√£o
+                    mainAppSection.style.display = 'block'; // Mostra a se√ß√£o principal
                     setupDeliveriesListener(); // Inicia o listener de entregas
                     setupMotoboysListener(); // Inicia o listener de motoboys
                 } else {
-                    // Usu·rio deslogado
+                    // Usu√°rio deslogado
                     userId = null;
-                    window.firebaseUserId = null; // Limpa a vari·vel global
+                    window.firebaseUserId = null; // Limpa a vari√°vel global
                     welcomeUser.textContent = '';
-                    authSection.style.display = 'flex'; // Mostra a seÁ„o de autenticaÁ„o
-                    loginForm.style.display = 'block'; // Garante que o formul·rio de login esteja visÌvel
-                    registerForm.style.display = 'none'; // Garante que o formul·rio de registro esteja oculto
-                    mainAppSection.style.display = 'none'; // Esconde a seÁ„o principal
-                    deliveries = []; // Limpa dados em memÛria
-                    registeredMotoboys = []; // Limpa dados em memÛria
+                    authSection.style.display = 'flex'; // Mostra a se√ß√£o de autentica√ß√£o
+                    loginForm.style.display = 'block'; // Garante que o formul√°rio de login esteja vis√≠vel
+                    registerForm.style.display = 'none'; // Garante que o formul√°rio de registro esteja oculto
+                    mainAppSection.style.display = 'none'; // Esconde a se√ß√£o principal
+                    deliveries = []; // Limpa dados em mem√≥ria
+                    registeredMotoboys = []; // Limpa dados em mem√≥ria
                     updateTable(); // Limpa a tabela
                     renderMotoboyGrid(); // Limpa a grade de motoboys
                     if (unsubscribeDeliveries) {
@@ -3059,7 +3059,7 @@
                 }
             });
 
-            // Event listeners para o formul·rio de login
+            // Event listeners para o formul√°rio de login
             loginBtn.addEventListener('click', () => {
                 const email = loginEmailInput.value;
                 const password = loginPasswordInput.value;
@@ -3089,7 +3089,7 @@
                 hideAllErrors();
             });
 
-            // Event listener para o bot„o de registro
+            // Event listener para o bot√£o de registro
             registerBtn.addEventListener('click', () => {
                 const email = registerEmailInput.value;
                 const password = registerPasswordInput.value;
@@ -3104,7 +3104,7 @@
                 }
             });
 
-            // Inicializa o estado dos botıes de impress„o/exportaÁ„o (ser· atualizado pelo listener do Firestore)
+            // Inicializa o estado dos bot√µes de impress√£o/exporta√ß√£o (ser√° atualizado pelo listener do Firestore)
             updatePrintAndExportButtonState();
         });
     </script>
