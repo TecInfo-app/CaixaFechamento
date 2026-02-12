@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Ágil v22 - Firebase Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal { transition: opacity 0.2s ease; }
+        .card-calc { @apply bg-white p-3 rounded-lg shadow border-t-4 flex flex-col; }
+        .bloqueado-total { @apply opacity-40 pointer-events-none grayscale select-none; }
+        .btn-acao { @apply p-1 bg-white border rounded shadow hover:bg-gray-100 text-[10px] px-2 flex items-center justify-center; }
+        input[type="number"]::-webkit-inner-spin-button { display: none; }
+        @media print {
+            body * { visibility: hidden !important; }
+            #areaImpressao, #areaImpressao * { visibility: visible !important; }
+            #areaImpressao { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+            .no-print { display: none !important; }
+        }
+        #areaImpressao { display: none; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
+    </style>
+</head>
+<body class="bg-gray-100 p-2 md:p-6 font-sans text-gray-800">
+
+    <div class="max-w-6xl mx-auto no-print">
+        <div class="bg-gray-900 text-white p-4 rounded-t-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-lg">
+            <div>
+                <label class="text-[10px] text-gray-400 uppercase font-bold">Loja Atual</label>
+                <input type="text" id="configLoja" onchange="trocarContexto()" class="w-full bg-transparent border-b border-yellow-500 outline-none font-bold text-yellow-500" value="Loja Matriz">
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-400 uppercase font-bold">Operador</label>
+                <input type="text" id="configOperador" onchange="salvarSessao()" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold" value="Operador">
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-400 uppercase font-bold">Data</label>
+                <input type="date" id="configData" onchange="trocarContexto()" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold">
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-400 uppercase font-bold">Turno</label>
+                <select id="configTurno" onchange="salvarSessao(); calcularPainel();" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold text-white">
+                    <option value="Dia" class="text-black">🌞 Turno Dia</option>
+                    <option value="Noite" class="text-black">🌚 Turno Noite</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex shadow-md">
+            <button id="btnAbrirCaixa" onclick="abrirCaixa()" class="flex-1 bg-green-600 text-white font-black py-4 uppercase text-sm">🔓 Abrir Caixa</button>
+            <button id="btnFecharCaixa" onclick="encerrarEImprimir()" class="flex-1 bg-red-600 text-white font-black py-4 uppercase text-sm hidden">🏁 Encerrar Turno & Imprimir</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-200 border-x border-gray-300">
+            <div class="card-calc border-blue-500 cursor-pointer" onclick="abrirModalVendaDia()">
+                <label class="text-[10px] font-bold text-gray-400 uppercase italic">Volume Líquido</label>
+                <div id="displayVolume" class="text-xl font-black text-blue-600">R$ 0,00</div>
+            </div>
+            <div class="card-calc border-purple-600">
+                <label class="text-[10px] font-bold text-gray-400 uppercase italic">Venda Itens (Turno)</label>
+                <div id="displayTotalItensTurno" class="text-xl font-black text-purple-600">R$ 0,00</div>
+            </div>
+            <div class="card-calc border-orange-500">
+                <label class="text-[10px] font-bold text-gray-400 uppercase italic">Diferença</label>
+                <div id="displayDiferenca" class="text-xl font-black text-orange-600">R$ 0,00</div>
+            </div>
+        </div>
+
+        <div id="areaOperacional" class="bg-white p-4 md:p-6 rounded-b-xl shadow-xl bloqueado-total">
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Venda</button>
+                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Venda do Dia</button>
+                <button onclick="abrirHistorico()" class="bg-gray-800 text-white py-3 rounded font-bold uppercase text-[10px]">📜 Histórico</button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-6">
+                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ consumos\ descontos</button>
+                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída\ajustes</button>
+                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pend.</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-4">
+                <div>
+                    <h3 class="text-[10px] font-black text-blue-800 uppercase italic flex justify-between items-center">Entradas <span id="totEntrada">0,00</span></h3>
+                    <ul id="listaHomeEntrada" class="text-[10px] mt-2 space-y-1 divide-y border-t"></ul>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black text-red-800 uppercase italic flex justify-between items-center">Saídas <span id="totSaida">0,00</span></h3>
+                    <ul id="listaHomeSaida" class="text-[10px] mt-2 space-y-1 divide-y border-t"></ul>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black text-orange-800 uppercase italic flex justify-between items-center">Pendentes <span id="totPendente">0,00</span></h3>
+                    <ul id="listaHomePendente" class="text-[10px] mt-2 space-y-1 divide-y border-t"></ul>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-3 rounded">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase italic">Abertura</label>
+                    <div id="exibeSaldoIni" class="text-xl font-black text-gray-700">R$ 0,00</div>
+                </div>
+                <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                    <label class="text-[10px] font-bold text-blue-600 uppercase italic">Gaveta Final</label>
+                    <input type="number" id="saldoFinal" oninput="calcularPainel()" class="w-full text-xl font-black text-blue-700 bg-transparent outline-none" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-[70] p-4 no-print">
+        <div class="absolute inset-0 bg-black/60" onclick="fecharModais()"></div>
+        <div class="relative bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl">
+            <h2 id="modalTitulo" class="text-lg font-black mb-4 uppercase text-blue-700 italic border-b">Lançamento</h2>
+            <input type="hidden" id="editId">
+            <div class="space-y-3">
+                <input type="text" id="descLancamento" class="w-full border p-2 rounded outline-none" placeholder="Descrição">
+                <input type="number" id="valLancamento" onkeydown="verificarEnter(event)" class="w-full border p-2 rounded outline-none font-bold text-lg bg-yellow-50" placeholder="Valor (Enter)">
+                <div class="bg-gray-900 p-3 rounded-lg text-right">
+                    <div id="contagemSoma" class="text-[9px] text-gray-400 uppercase">0 adições</div>
+                    <div id="visorSoma" class="text-2xl font-black text-green-400 font-mono">R$ 0,00</div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-4">
+                <button onclick="fecharModais()" class="bg-gray-200 py-3 rounded font-bold uppercase text-xs">Sair</button>
+                <button onclick="confirmarLancamentos()" class="bg-blue-600 text-white py-3 rounded font-bold uppercase text-xs">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalVendaDia" class="modal opacity-0 pointer-events-none fixed inset-0 flex items-center justify-center z-50 p-4 no-print">
+        <div class="absolute inset-0 bg-black opacity-60" onclick="fecharModais()"></div>
+        <div class="relative bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="text-xl font-black text-indigo-700 uppercase italic mb-4 border-b">📊 Fechamento Consolidado</h2>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <select id="filtroLojaVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none"></select>
+                <input type="date" id="filtroDataVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                <div class="space-y-3">
+                    <h4 class="font-black text-green-700 uppercase text-[10px] border-b">Faturamento (+)</h4>
+                    <div class="flex justify-between"><span>Itens Dia:</span><b id="vdItensDia">0,00</b></div>
+                    <div class="flex justify-between"><span>Itens Noite:</span><b id="vdItensNoite">0,00</b></div>
+                    <input type="number" id="inputTotalDelivery" oninput="salvarDadosManuais()" class="w-full bg-green-50 p-1 border-b text-[10px]" placeholder="Delivery Bruto">
+                </div>
+                <div class="space-y-3">
+                    <h4 class="font-black text-red-700 uppercase text-[10px] border-b">Deduções (-)</h4>
+                    <div class="flex justify-between"><span>Serviços:</span><b id="vdServTot" class="text-red-500">0,00</b></div>
+                    <div class="flex justify-between"><span>Entradas/Desc:</span><b id="vdDescTot" class="text-red-500">0,00</b></div>
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+                        <input type="number" id="inputDescDelivery" oninput="salvarDadosManuais()" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Desc. Deliv.">
+                        <input type="number" id="inputTaxaEntrega" oninput="salvarDadosManuais()" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Taxa Entrega">
+                        <input type="number" id="inputCouvert" oninput="salvarDadosManuais()" class="col-span-2 bg-gray-50 p-1 border-b text-[10px]" placeholder="Couvert">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 bg-indigo-900 text-white p-5 rounded-lg flex justify-between items-center shadow-2xl">
+                <div>
+                    <p class="text-[10px] uppercase font-bold text-indigo-300">Total Líquido do Dia</p>
+                    <p id="vdTotalFinal" class="text-3xl font-black text-green-400 font-mono">R$ 0,00</p>
+                </div>
+                <button onclick="window.print()" class="bg-indigo-700 p-3 rounded-full">🖨️</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="areaImpressao" class="p-4"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ==========================================================
+        // 🔴 COLOQUE SUAS CONFIGURAÇÕES DO FIREBASE AQUI 🔴
+        // ==========================================================
+       const firebaseConfig = {
+  apiKey: "AIzaSyDfKa8kHi3x7KpoqnfC5f7riVckwAWyqlU",
+  authDomain: "caixaapp-745bc.firebaseapp.com",
+  projectId: "caixaapp-745bc",
+  storageBucket: "caixaapp-745bc.firebasestorage.app",
+  messagingSenderId: "404038552334",
+  appId: "1:404038552334:web:9a2c4b773688f2ade3a55f"
+};
+        // ==========================================================
+
+        const app = initializeApp(firebaseConfig);
+        const db_fs = getFirestore(app);
+
+        // VARIÁVEIS GLOBAIS
+        let db = { vendas: [], lancamentos: [], manuais: {}, historicoFechamentos: [] };
+        let caixaTurno = { lancamentos: [], vendas: [], saldoInicial: 0, aberto: false };
+        let somaTemporaria = 0, contagemTemporaria = 0, tipoAtual = '';
+
+        window.onload = () => {
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('configData').value = hoje;
+            document.getElementById('filtroDataVendaDia').value = hoje;
+            carregarSessaoAtual();
+            ouvirAtualizacoesGlobais();
+        };
+
+        // --- PERSISTÊNCIA FIREBASE ---
+
+        async function carregarSessaoAtual() {
+            const loja = document.getElementById('configLoja').value;
+            const data = document.getElementById('configData').value;
+            const docRef = doc(db_fs, "sessoes", `${loja}_${data}`);
+            
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                caixaTurno = docSnap.data();
+            } else {
+                caixaTurno = { lancamentos: [], vendas: [], saldoInicial: 0, aberto: false };
+            }
+
+            // Carregar Manuais e Banco Global
+            const dbRef = doc(db_fs, "global", "dados");
+            const dbSnap = await getDoc(dbRef);
+            if(dbSnap.exists()) db = dbSnap.data();
+
+            document.getElementById('exibeSaldoIni').innerText = `R$ ${caixaTurno.saldoInicial.toFixed(2)}`;
+            const m = db.manuais[`${loja}_${data}`] || {};
+            document.getElementById('inputTotalDelivery').value = m.delivery || "";
+            document.getElementById('inputDescDelivery').value = m.descDeliv || "";
+            document.getElementById('inputTaxaEntrega').value = m.taxa || "";
+            document.getElementById('inputCouvert').value = m.couvert || "";
+            
+            controlarUI();
+            calcularPainel();
+        }
+
+        async function salvarSessao() {
+            const loja = document.getElementById('configLoja').value;
+            const data = document.getElementById('configData').value;
+            
+            // Salva sessão do dia
+            await setDoc(doc(db_fs, "sessoes", `${loja}_${data}`), caixaTurno);
+            // Salva banco global
+            await setDoc(doc(db_fs, "global", "dados"), db);
+        }
+
+        function ouvirAtualizacoesGlobais() {
+            onSnapshot(doc(db_fs, "global", "dados"), (doc) => {
+                if(doc.exists()) {
+                    db = doc.data();
+                    calcularPainel();
+                }
+            });
+        }
+
+        // --- FUNÇÕES DE INTERFACE (VINCULADAS AO GLOBAL) ---
+
+        window.trocarContexto = carregarSessaoAtual;
+        window.salvarSessao = salvarSessao;
+
+        window.calcularPainel = function() {
+            const turnoAtu = document.getElementById('configTurno').value;
+            const fTurno = l => l.turno === turnoAtu;
+            const vEnt = caixaTurno.lancamentos.filter(l => l.tipo === 'entrada' && fTurno(l)).reduce((a,b) => a + b.valor, 0);
+            const vSai = caixaTurno.lancamentos.filter(l => l.tipo === 'saida' && fTurno(l)).reduce((a,b) => a + b.valor, 0);
+            const vPen = caixaTurno.lancamentos.filter(l => l.tipo === 'pendente' && fTurno(l)).reduce((a,b) => a + b.valor, 0);
+            const tItens = caixaTurno.vendas.filter(fTurno).reduce((a,b) => a + b.itens, 0);
+            const sFin = parseFloat(document.getElementById('saldoFinal').value) || 0;
+            const volLiq = (vEnt + vSai + vPen + sFin) - caixaTurno.saldoInicial;
+            
+            document.getElementById('totEntrada').innerText = vEnt.toFixed(2);
+            document.getElementById('totSaida').innerText = vSai.toFixed(2);
+            document.getElementById('totPendente').innerText = vPen.toFixed(2);
+            document.getElementById('displayVolume').innerText = `R$ ${volLiq.toFixed(2)}`;
+            document.getElementById('displayTotalItensTurno').innerText = `R$ ${tItens.toFixed(2)}`;
+            document.getElementById('displayDiferenca').innerText = `R$ ${(volLiq - tItens).toFixed(2)}`;
+            
+            renderizarListaHome('entrada', 'listaHomeEntrada');
+            renderizarListaHome('saida', 'listaHomeSaida');
+            renderizarListaHome('pendente', 'listaHomePendente');
+        }
+
+        function renderizarListaHome(tipo, idLista) {
+            const lista = document.getElementById(idLista);
+            lista.innerHTML = "";
+            const turnoAtu = document.getElementById('configTurno').value;
+            caixaTurno.lancamentos.filter(l => l.tipo === tipo && l.turno === turnoAtu).forEach(l => {
+                const li = document.createElement('li');
+                li.className = "py-2 flex justify-between items-center group border-b border-gray-100 last:border-0";
+                li.innerHTML = `<div><span class="text-[7px] text-gray-400 font-bold uppercase">${l.descricao}</span><br><span class="font-black text-gray-700">R$ ${l.valor.toFixed(2)}</span></div>
+                    <div class="flex gap-1">
+                        <button onclick="imprimirCupomItem(${l.id})" class="btn-acao text-blue-600">🖨️</button>
+                        <button onclick="prepararEdicao(${l.id})" class="btn-acao text-orange-500">📝</button>
+                        <button onclick="excluirItem(${l.id})" class="btn-acao text-red-500">✕</button>
+                    </div>`;
+                lista.appendChild(li);
+            });
+        }
+
+        // --- LOGICA DE NEGOCIO ---
+
+        window.confirmarLancamentos = async function() {
+            const idEdicao = document.getElementById('editId').value;
+            const desc = document.getElementById('descLancamento').value || "Geral";
+            const valNoCampo = parseFloat(document.getElementById('valLancamento').value);
+            if(!isNaN(valNoCampo) && valNoCampo !== 0) somaTemporaria += valNoCampo;
+
+            const obj = { 
+                valor: somaTemporaria, descricao: desc, id: idEdicao ? parseInt(idEdicao) : Date.now(), 
+                tipo: tipoAtual, turno: document.getElementById('configTurno').value, 
+                data: document.getElementById('configData').value, loja: document.getElementById('configLoja').value
+            };
+
+            if(idEdicao) {
+                const idxDB = db.lancamentos.findIndex(l => l.id == idEdicao);
+                const idxTurno = caixaTurno.lancamentos.findIndex(l => l.id == idEdicao);
+                if(idxDB !== -1) db.lancamentos[idxDB] = obj;
+                if(idxTurno !== -1) caixaTurno.lancamentos[idxTurno] = obj;
+            } else {
+                caixaTurno.lancamentos.push(obj);
+                db.lancamentos.push(obj);
+            }
+            fecharModais(); 
+            await salvarSessao();
+            calcularPainel();
+        }
+
+        window.abrirCaixa = async function() { 
+            const v = prompt("Saldo Inicial:"); 
+            if(v !== null) { 
+                caixaTurno.saldoInicial = parseFloat(v)||0; 
+                caixaTurno.aberto = true; 
+                await salvarSessao(); 
+                carregarSessaoAtual(); 
+            } 
+        }
+
+        window.encerrarEImprimir = async function() {
+            if(!confirm("Fechar caixa e imprimir?")) return;
+            const sFin = parseFloat(document.getElementById('saldoFinal').value) || 0;
+            const dadosFechamento = {
+                id: Date.now(),
+                loja: document.getElementById('configLoja').value,
+                data: document.getElementById('configData').value,
+                turno: document.getElementById('configTurno').value,
+                saldoInicial: caixaTurno.saldoInicial,
+                saldoFinal: sFin,
+                lancamentos: [...caixaTurno.lancamentos.filter(l => l.turno === document.getElementById('configTurno').value)],
+                vendas: [...caixaTurno.vendas.filter(v => v.turno === document.getElementById('configTurno').value)],
+                dataHora: new Date().toLocaleString()
+            };
+            db.historicoFechamentos.push(dadosFechamento);
+            caixaTurno.aberto = false;
+            await salvarSessao();
+            carregarSessaoAtual();
+            gerarLayoutRelatorio(dadosFechamento);
+        }
+
+        // --- AUXILIARES ---
+        window.fecharModais = function() { document.querySelectorAll('.modal').forEach(m => m.classList.add('opacity-0', 'pointer-events-none')); }
+        window.abrirModal = function(tipo) {
+            if(!caixaTurno.aberto) return alert("Abra o caixa!");
+            tipoAtual = tipo; somaTemporaria = 0; contagemTemporaria = 0;
+            document.getElementById('editId').value = ""; document.getElementById('descLancamento').value = "";
+            document.getElementById('visorSoma').innerText = "R$ 0,00";
+            document.getElementById('modalTitulo').innerText = "Novo " + tipo.toUpperCase();
+            document.getElementById('modal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+        window.excluirItem = async function(id) {
+            if(confirm("Excluir?")) {
+                caixaTurno.lancamentos = caixaTurno.lancamentos.filter(l => l.id !== id);
+                db.lancamentos = db.lancamentos.filter(l => l.id !== id);
+                await salvarSessao(); calcularPainel();
+            }
+        }
+        window.prepararEdicao = function(id) {
+            const item = db.lancamentos.find(l => l.id === id);
+            if(!item) return;
+            tipoAtual = item.tipo; document.getElementById('editId').value = id;
+            document.getElementById('descLancamento').value = item.descricao;
+            somaTemporaria = item.valor; contagemTemporaria = 1;
+            document.getElementById('visorSoma').innerText = `R$ ${somaTemporaria.toFixed(2)}`;
+            document.getElementById('modalTitulo').innerText = "Editar " + tipoAtual.toUpperCase();
+            document.getElementById('modal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+        window.abrirModalVenda = async function() {
+            if(!caixaTurno.aberto) return alert("Abra o caixa!");
+            const s = prompt("Serviço:"); const i = prompt("Itens:");
+            if(s !== null && i !== null) {
+                const v = { servico: parseFloat(s)||0, itens: parseFloat(i)||0, turno: document.getElementById('configTurno').value, data: document.getElementById('configData').value, loja: document.getElementById('configLoja').value, id: Date.now() };
+                caixaTurno.vendas.push(v); db.vendas.push(v); 
+                await salvarSessao(); calcularPainel();
+            }
+        }
+        window.verificarEnter = function(e) {
+            if(e.key === "Enter" && e.target.value) {
+                const val = parseFloat(e.target.value);
+                if(!isNaN(val)) {
+                    somaTemporaria += val; contagemTemporaria++;
+                    document.getElementById('visorSoma').innerText = `R$ ${somaTemporaria.toFixed(2)}`;
+                    document.getElementById('contagemSoma').innerText = `${contagemTemporaria} adição(ões)`;
+                    e.target.value = "";
+                }
+                e.preventDefault();
+            }
+        }
+
+        // --- RELATÓRIOS E IMPRESSÃO ---
+        window.imprimirCupomItem = function(id) {
+            const item = db.lancamentos.find(l => l.id === id);
+            if(!item) return;
+            document.getElementById('areaImpressao').innerHTML = `
+                <div style="text-align:center; font-weight:bold;">${item.loja}</div>
+                <div style="text-align:center; margin-bottom:10px;">CUPOM DE LANÇAMENTO</div>
+                <hr style="border: 0.5px dashed #000;">
+                <p>DATA: ${item.data} | TURNO: ${item.turno}</p>
+                <p>TIPO: ${item.tipo.toUpperCase()}</p>
+                <p>DESC: ${item.descricao}</p>
+                <hr style="border: 0.5px dashed #000;">
+                <div style="text-align:right; font-size:16px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>`;
+            window.print();
+        }
+
+        function gerarLayoutRelatorio(dados) {
+            const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo);
+            const soma = (lista) => lista.reduce((a,b) => a + b.valor, 0);
+            const tItens = dados.vendas.reduce((a,b) => a + b.itens, 0);
+            const tServico = dados.vendas.reduce((a,b) => a + b.servico, 0);
+            const vEnt = soma(filtrar('entrada'));
+            const vSai = soma(filtrar('saida'));
+            const vPen = soma(filtrar('pendente'));
+            const vLiq = (vEnt + vSai + vPen + dados.saldoFinal) - dados.saldoInicial;
+
+            let html = `<div style="text-align:center; font-weight:bold; font-size:14px;">${dados.loja}</div>
+                <div style="text-align:center;">RELATÓRIO DE FECHAMENTO</div>
+                <div style="text-align:center; font-size:10px;">${dados.dataHora}</div>
+                <hr style="border: 0.5px dashed #000;">
+                <p>DATA REF: ${dados.data} | TURNO: ${dados.turno}</p>
+                <p>ABERTURA: R$ ${dados.saldoInicial.toFixed(2)}</p>
+                <p>GAVETA FINAL: R$ ${dados.saldoFinal.toFixed(2)}</p>
+                <hr style="border: 0.5px dashed #000;">
+                <p><b>FATURAMENTO DO TURNO</b></p>
+                <p>Venda Itens: R$ ${tItens.toFixed(2)}</p>
+                <p>Venda Serviço: R$ ${tServico.toFixed(2)}</p>
+                <p>TOTAL BRUTO: R$ ${(tItens + tServico).toFixed(2)}</p>
+                <hr style="border: 0.5px dashed #000;">
+                <p><b>(+) ENTRADAS</b></p>`;
+            filtrar('entrada').forEach(l => html += `<p>${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`);
+            html += `<hr style="border: 0.5px dashed #000;"><p><b>(-) SAÍDAS</b></p>`;
+            filtrar('saida').forEach(l => html += `<p>${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`);
+            html += `<hr style="border: 0.5px dashed #000;"><p><b>(⏳) PENDENTES</b></p>`;
+            filtrar('pendente').forEach(l => html += `<p>${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`);
+            html += `<br><br><div style="text-align:center;">Assinatura: _________________</div>`;
+            document.getElementById('areaImpressao').innerHTML = html;
+            window.print();
+        }
+
+        window.abrirHistorico = function() {
+            if(db.historicoFechamentos.length === 0) return alert("Vazio.");
+            const lista = [...db.historicoFechamentos].slice(-10).reverse();
+            let msg = "Últimos 10:\n";
+            lista.forEach((h, i) => msg += `${i+1}. ${h.data} - ${h.turno}\n`);
+            const op = prompt(msg + "Número para reimprimir:");
+            if(op && lista[op-1]) gerarLayoutRelatorio(lista[op-1]);
+        }
+
+        function controlarUI() {
+            const area = document.getElementById('areaOperacional');
+            if(caixaTurno.aberto) { area.classList.remove('bloqueado-total'); document.getElementById('btnFecharCaixa').classList.remove('hidden'); document.getElementById('btnAbrirCaixa').classList.add('hidden'); }
+            else { area.classList.add('bloqueado-total'); document.getElementById('btnFecharCaixa').classList.add('hidden'); document.getElementById('btnAbrirCaixa').classList.remove('hidden'); }
+        }
+
+        window.abrirModalVendaDia = function() { carregarListboxLojas(); renderizarAcumuladoDia(); document.getElementById('modalVendaDia').classList.remove('opacity-0', 'pointer-events-none'); }
+        function carregarListboxLojas() {
+            const lojas = new Set([...db.vendas, ...db.lancamentos].map(x => x.loja));
+            lojas.add(document.getElementById('configLoja').value);
+            document.getElementById('filtroLojaVendaDia').innerHTML = [...lojas].map(l => `<option value="${l}">${l}</option>`).join("");
+        }
+        window.renderizarAcumuladoDia = function() {
+            const loja = document.getElementById('filtroLojaVendaDia').value;
+            const data = document.getElementById('filtroDataVendaDia').value;
+            const vF = db.vendas.filter(v => v.data === data && v.loja === loja);
+            const lF = db.lancamentos.filter(l => l.data === data && l.loja === loja);
+            const m = db.manuais[`${loja}_${data}`] || { delivery:0, descDeliv:0, taxa:0, couvert:0 };
+            const itensDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.itens, 0);
+            const itensNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.itens, 0);
+            const servTot = vF.reduce((a,b) => a + b.servico, 0);
+            const descTot = lF.filter(l => l.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
+            document.getElementById('vdItensDia').innerText = itensDia.toFixed(2);
+            document.getElementById('vdItensNoite').innerText = itensNoite.toFixed(2);
+            document.getElementById('vdServTot').innerText = servTot.toFixed(2);
+            document.getElementById('vdDescTot').innerText = descTot.toFixed(2);
+            const bruto = itensDia + itensNoite + m.delivery;
+            const deducoes = servTot + descTot + m.descDeliv + m.taxa + m.couvert;
+            document.getElementById('vdTotalFinal').innerText = `R$ ${(bruto - deducoes).toFixed(2)}`;
+        }
+        window.salvarDadosManuais = async function() {
+            const loja = document.getElementById('filtroLojaVendaDia').value;
+            const data = document.getElementById('filtroDataVendaDia').value;
+            db.manuais[`${loja}_${data}`] = {
+                delivery: parseFloat(document.getElementById('inputTotalDelivery').value) || 0,
+                descDeliv: parseFloat(document.getElementById('inputDescDelivery').value) || 0,
+                taxa: parseFloat(document.getElementById('inputTaxaEntrega').value) || 0,
+                couvert: parseFloat(document.getElementById('inputCouvert').value) || 0
+            };
+            await salvarSessao(); renderizarAcumuladoDia();
+        }
+    </script>
+</body>
+</html>
