@@ -471,40 +471,56 @@
 
     if (!loja || !dataInicio || !dataFim) return;
 
-    // Filtra vendas onde a data está entre o Início e o Fim
-    const vF = db.vendas.filter(v => 
-        v.loja === loja && 
-        v.data >= dataInicio && 
-        v.data <= dataFim
-    );
+    // 1. Filtro de Vendas e Lançamentos (Já funciona por período)
+    const vF = db.vendas.filter(v => v.loja === loja && v.data >= dataInicio && v.data <= dataFim);
+    const lF = db.lancamentos.filter(l => l.loja === loja && l.data >= dataInicio && l.data <= dataFim);
 
-    const lF = db.lancamentos.filter(l => 
-        l.loja === loja && 
-        l.data >= dataInicio && 
-        l.data <= dataFim
-    );
+    // 2. SOMA DE DADOS MANUAIS POR PERÍODO (Nova Lógica)
+    let totalDelivery = 0, totalTaxa = 0, totalCouvert = 0;
+    
+    // Transforma as datas em objetos para podermos contar os dias
+    let dataAtual = new Date(dataInicio + 'T00:00:00');
+    const dataFinalObj = new Date(dataFim + 'T00:00:00');
 
-    // Somas por turno (Dia/Noite)
+    while (dataAtual <= dataFinalObj) {
+        const dataStr = dataAtual.toISOString().split('T')[0];
+        const idDia = `${loja}_${dataStr}`;
+        
+        if (db.dadosManuais && db.dadosManuais[idDia]) {
+            totalDelivery += parseFloat(db.dadosManuais[idDia].delivery || 0);
+            totalTaxa += parseFloat(db.dadosManuais[idDia].taxaEntrega || 0);
+            totalCouvert += parseFloat(db.dadosManuais[idDia].couvert || 0);
+        }
+        dataAtual.setDate(dataAtual.getDate() + 1); // Pula para o próximo dia
+    }
+
+    // 3. Cálculos de Turnos
     const itensDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.itens, 0);
     const itensNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.itens, 0);
     const servDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.servico, 0);
     const servNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.servico, 0);
-    const descTot = lF.filter(l => l.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
+    const entradas = lF.filter(l => l.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
 
-    // Atualiza os textos na tela
-    const atualizar = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val.toFixed(2); };
+    // 4. Atualização da Tela
+    const setTxt = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val.toFixed(2); };
     
-    atualizar('vdItensDia', itensDia);
-    atualizar('vdItensNoite', itensNoite);
-    atualizar('vdServDia', servDia);
-    atualizar('vdServNoite', servNoite);
-    atualizar('vdDescTot', descTot);
+    setTxt('vdItensDia', itensDia);
+    setTxt('vdItensNoite', itensNoite);
+    setTxt('vdServDia', servDia);
+    setTxt('vdServNoite', servNoite);
+    setTxt('vdDescTot', entradas);
+    
+    // Atualiza os campos de Delivery/Couvert somados
+    if(document.getElementById('inputTotalDelivery')) document.getElementById('inputTotalDelivery').value = totalDelivery.toFixed(2);
+    if(document.getElementById('inputTaxaEntrega')) document.getElementById('inputTaxaEntrega').value = totalTaxa.toFixed(2);
+    if(document.getElementById('inputCouvert')) document.getElementById('inputCouvert').value = totalCouvert.toFixed(2);
 
-    const bruto = itensDia + itensNoite;
-    const deducoes = (servDia + servNoite) + descTot;
+    // Cálculo do Líquido Final
+    const faturamento = itensDia + itensNoite + totalDelivery + totalCouvert;
+    const deducoes = servDia + servNoite + totalTaxa + entradas;
     
     if(document.getElementById('vdTotalFinal')) {
-        document.getElementById('vdTotalFinal').innerText = `R$ ${(bruto - deducoes).toFixed(2)}`;
+        document.getElementById('vdTotalFinal').innerText = `R$ ${(faturamento - deducoes).toFixed(2)}`;
     }
 }
         window.salvarDadosManuais = async function() {
@@ -560,5 +576,6 @@
     </script>
 </body>
 </html>
+
 
 
