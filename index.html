@@ -312,7 +312,7 @@
             const dadosFechamento = {
                 id: Date.now(),
                 loja: document.getElementById('configLoja').value,
-                operador: document.getElementById('configOperador').value, // <-- ADICIONE ESTA LINHA
+                //operador: document.getElementById('configOperador').value, // <-- ADICIONE ESTA LINHA
                 data: document.getElementById('configData').value,
                 turno: document.getElementById('configTurno').value,
                 saldoInicial: caixaTurno.saldoInicial,
@@ -402,7 +402,7 @@
                 <div style="text-align:center; font-weight:bold;">RELATÓRIO DE FECHAMENTO</div>
                 <hr>
                 <p><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
-                <p><b>OPERADOR: ${dados.operador || '---'}</b></p>
+                
                 <p><b>VENDA ITENS: R$ ${tItens.toFixed(2)}</b></p>
                 <p><b>VENDA SERVIÇO: R$ ${tServico.toFixed(2)}</b></p>
                 <hr>
@@ -419,7 +419,7 @@
             const lista = [...db.historicoFechamentos].slice(-10).reverse();
             if(lista.length === 0) return alert("Vazio.");
             let msg = "Últimos 10:\n";
-            lista.forEach((h, i) => msg += `${i+1}. ${h.data} - ${h.turno} [Op: ${h.operador || '---'}]\n`);
+            lista.forEach((h, i) => msg += `${i+1}. ${h.data} - ${h.turno}\n`);
             const op = prompt(msg + "Número para reimprimir:");
             if(op && lista[op-1]) gerarLayoutRelatorio(lista[op-1]);
         }
@@ -474,6 +474,7 @@
     </script>
 </body>
 </html>
+
 
 
 
