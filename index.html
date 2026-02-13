@@ -82,15 +82,15 @@
 
         <div id="areaOperacional" class="bg-white p-4 md:p-6 rounded-b-xl shadow-xl bloqueado-total">
             <div class="grid grid-cols-3 gap-4 mb-6">
-                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Venda</button>
-                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Dia</button>
+                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Informar Venda (3lm)</button>
+                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Venda do Dia</button>
                 <button onclick="abrirHistorico()" class="bg-gray-800 text-white py-3 rounded font-bold uppercase text-[10px]">📜 Histórico</button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 mb-6">
-                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ Entr.</button>
-                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída</button>
-                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pend.</button>
+                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">Consumo/Descontos</button>
+                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída/ajuste</button>
+                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pendentes</button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-4">
@@ -169,7 +169,7 @@
             </div>
             
             <div class="mt-8 flex gap-2">
-                <button onclick="salvarDadosManuais()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg uppercase text-xs shadow-lg hover:bg-green-700 transition">💾 Salvar Dados Manuais</button>
+                <button onclick="salvarDadosManuais()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg uppercase text-xs shadow-lg hover:bg-green-700 transition">💾 Salvar Dados </button>
                 <button onclick="window.print()" class="bg-gray-800 text-white p-3 rounded-lg shadow-lg">🖨️</button>
             </div>
 
@@ -472,3 +472,4 @@
     </script>
 </body>
 </html>
+
