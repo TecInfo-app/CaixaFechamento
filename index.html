@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Ágil v22 - Firebase Edition</title>
+    <title>Gestão Ágil v24 - CIA DO CHOPP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .modal { transition: opacity 0.2s ease; }
@@ -11,13 +11,28 @@
         .bloqueado-total { @apply opacity-40 pointer-events-none grayscale select-none; }
         .btn-acao { @apply p-1 bg-white border rounded shadow hover:bg-gray-100 text-[10px] px-2 flex items-center justify-center; }
         input[type="number"]::-webkit-inner-spin-button { display: none; }
+        
+        /* AJUSTES PARA IMPRESSÃO ESCURA */
         @media print {
             body * { visibility: hidden !important; }
-            #areaImpressao, #areaImpressao * { visibility: visible !important; }
-            #areaImpressao { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+            #areaImpressao, #areaImpressao * { 
+                visibility: visible !important; 
+                color: #000 !important; 
+                /* O text-shadow abaixo ajuda a "engrossar" a letra na térmica */
+                text-shadow: 0.5px 0 0 #000, 0 0.5px 0 #000;
+            }
+            #areaImpressao { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                display: block !important; 
+                line-height: 1.2;
+            }
             .no-print { display: none !important; }
+            hr { border-top: 1px dashed #000 !important; }
         }
-        #areaImpressao { display: none; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
+        #areaImpressao { display: none; font-family: 'Courier New', Courier, monospace; font-size: 13px; }
     </style>
 </head>
 <body class="bg-gray-100 p-2 md:p-6 font-sans text-gray-800">
@@ -68,13 +83,13 @@
         <div id="areaOperacional" class="bg-white p-4 md:p-6 rounded-b-xl shadow-xl bloqueado-total">
             <div class="grid grid-cols-3 gap-4 mb-6">
                 <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Venda</button>
-                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Venda do Dia</button>
+                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Dia</button>
                 <button onclick="abrirHistorico()" class="bg-gray-800 text-white py-3 rounded font-bold uppercase text-[10px]">📜 Histórico</button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 mb-6">
-                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ consumos\ descontos</button>
-                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída\ajustes</button>
+                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ Entr.</button>
+                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída</button>
                 <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pend.</button>
             </div>
 
@@ -139,25 +154,30 @@
                     <h4 class="font-black text-green-700 uppercase text-[10px] border-b">Faturamento (+)</h4>
                     <div class="flex justify-between"><span>Itens Dia:</span><b id="vdItensDia">0,00</b></div>
                     <div class="flex justify-between"><span>Itens Noite:</span><b id="vdItensNoite">0,00</b></div>
-                    <input type="number" id="inputTotalDelivery" oninput="salvarDadosManuais()" class="w-full bg-green-50 p-1 border-b text-[10px]" placeholder="Delivery Bruto">
+                    <input type="number" id="inputTotalDelivery" class="w-full bg-green-50 p-1 border-b text-[10px]" placeholder="Delivery Bruto">
                 </div>
                 <div class="space-y-3">
                     <h4 class="font-black text-red-700 uppercase text-[10px] border-b">Deduções (-)</h4>
                     <div class="flex justify-between"><span>Serviços:</span><b id="vdServTot" class="text-red-500">0,00</b></div>
                     <div class="flex justify-between"><span>Entradas/Desc:</span><b id="vdDescTot" class="text-red-500">0,00</b></div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t">
-                        <input type="number" id="inputDescDelivery" oninput="salvarDadosManuais()" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Desc. Deliv.">
-                        <input type="number" id="inputTaxaEntrega" oninput="salvarDadosManuais()" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Taxa Entrega">
-                        <input type="number" id="inputCouvert" oninput="salvarDadosManuais()" class="col-span-2 bg-gray-50 p-1 border-b text-[10px]" placeholder="Couvert">
+                        <input type="number" id="inputDescDelivery" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Desc. Deliv.">
+                        <input type="number" id="inputTaxaEntrega" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Taxa Entrega">
+                        <input type="number" id="inputCouvert" class="col-span-2 bg-gray-50 p-1 border-b text-[10px]" placeholder="Couvert">
                     </div>
                 </div>
             </div>
-            <div class="mt-8 bg-indigo-900 text-white p-5 rounded-lg flex justify-between items-center shadow-2xl">
+            
+            <div class="mt-8 flex gap-2">
+                <button onclick="salvarDadosManuais()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg uppercase text-xs shadow-lg hover:bg-green-700 transition">💾 Salvar Dados Manuais</button>
+                <button onclick="window.print()" class="bg-gray-800 text-white p-3 rounded-lg shadow-lg">🖨️</button>
+            </div>
+
+            <div class="mt-4 bg-indigo-900 text-white p-5 rounded-lg flex justify-between items-center shadow-2xl">
                 <div>
                     <p class="text-[10px] uppercase font-bold text-indigo-300">Total Líquido do Dia</p>
                     <p id="vdTotalFinal" class="text-3xl font-black text-green-400 font-mono">R$ 0,00</p>
                 </div>
-                <button onclick="window.print()" class="bg-indigo-700 p-3 rounded-full">🖨️</button>
             </div>
         </div>
     </div>
@@ -166,12 +186,12 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // ==========================================================
         // 🔴 COLOQUE SUAS CONFIGURAÇÕES DO FIREBASE AQUI 🔴
         // ==========================================================
-       const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyDfKa8kHi3x7KpoqnfC5f7riVckwAWyqlU",
   authDomain: "caixaapp-745bc.firebaseapp.com",
   projectId: "caixaapp-745bc",
@@ -184,7 +204,6 @@
         const app = initializeApp(firebaseConfig);
         const db_fs = getFirestore(app);
 
-        // VARIÁVEIS GLOBAIS
         let db = { vendas: [], lancamentos: [], manuais: {}, historicoFechamentos: [] };
         let caixaTurno = { lancamentos: [], vendas: [], saldoInicial: 0, aberto: false };
         let somaTemporaria = 0, contagemTemporaria = 0, tipoAtual = '';
@@ -197,32 +216,16 @@
             ouvirAtualizacoesGlobais();
         };
 
-        // --- PERSISTÊNCIA FIREBASE ---
-
         async function carregarSessaoAtual() {
             const loja = document.getElementById('configLoja').value;
             const data = document.getElementById('configData').value;
             const docRef = doc(db_fs, "sessoes", `${loja}_${data}`);
-            
             const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                caixaTurno = docSnap.data();
-            } else {
-                caixaTurno = { lancamentos: [], vendas: [], saldoInicial: 0, aberto: false };
-            }
-
-            // Carregar Manuais e Banco Global
+            caixaTurno = docSnap.exists() ? docSnap.data() : { lancamentos: [], vendas: [], saldoInicial: 0, aberto: false };
             const dbRef = doc(db_fs, "global", "dados");
             const dbSnap = await getDoc(dbRef);
             if(dbSnap.exists()) db = dbSnap.data();
-
             document.getElementById('exibeSaldoIni').innerText = `R$ ${caixaTurno.saldoInicial.toFixed(2)}`;
-            const m = db.manuais[`${loja}_${data}`] || {};
-            document.getElementById('inputTotalDelivery').value = m.delivery || "";
-            document.getElementById('inputDescDelivery').value = m.descDeliv || "";
-            document.getElementById('inputTaxaEntrega').value = m.taxa || "";
-            document.getElementById('inputCouvert').value = m.couvert || "";
-            
             controlarUI();
             calcularPainel();
         }
@@ -230,23 +233,15 @@
         async function salvarSessao() {
             const loja = document.getElementById('configLoja').value;
             const data = document.getElementById('configData').value;
-            
-            // Salva sessão do dia
             await setDoc(doc(db_fs, "sessoes", `${loja}_${data}`), caixaTurno);
-            // Salva banco global
             await setDoc(doc(db_fs, "global", "dados"), db);
         }
 
         function ouvirAtualizacoesGlobais() {
             onSnapshot(doc(db_fs, "global", "dados"), (doc) => {
-                if(doc.exists()) {
-                    db = doc.data();
-                    calcularPainel();
-                }
+                if(doc.exists()) { db = doc.data(); calcularPainel(); }
             });
         }
-
-        // --- FUNÇÕES DE INTERFACE (VINCULADAS AO GLOBAL) ---
 
         window.trocarContexto = carregarSessaoAtual;
         window.salvarSessao = salvarSessao;
@@ -260,14 +255,12 @@
             const tItens = caixaTurno.vendas.filter(fTurno).reduce((a,b) => a + b.itens, 0);
             const sFin = parseFloat(document.getElementById('saldoFinal').value) || 0;
             const volLiq = (vEnt + vSai + vPen + sFin) - caixaTurno.saldoInicial;
-            
             document.getElementById('totEntrada').innerText = vEnt.toFixed(2);
             document.getElementById('totSaida').innerText = vSai.toFixed(2);
             document.getElementById('totPendente').innerText = vPen.toFixed(2);
             document.getElementById('displayVolume').innerText = `R$ ${volLiq.toFixed(2)}`;
             document.getElementById('displayTotalItensTurno').innerText = `R$ ${tItens.toFixed(2)}`;
             document.getElementById('displayDiferenca').innerText = `R$ ${(volLiq - tItens).toFixed(2)}`;
-            
             renderizarListaHome('entrada', 'listaHomeEntrada');
             renderizarListaHome('saida', 'listaHomeSaida');
             renderizarListaHome('pendente', 'listaHomePendente');
@@ -290,20 +283,12 @@
             });
         }
 
-        // --- LOGICA DE NEGOCIO ---
-
         window.confirmarLancamentos = async function() {
             const idEdicao = document.getElementById('editId').value;
             const desc = document.getElementById('descLancamento').value || "Geral";
             const valNoCampo = parseFloat(document.getElementById('valLancamento').value);
             if(!isNaN(valNoCampo) && valNoCampo !== 0) somaTemporaria += valNoCampo;
-
-            const obj = { 
-                valor: somaTemporaria, descricao: desc, id: idEdicao ? parseInt(idEdicao) : Date.now(), 
-                tipo: tipoAtual, turno: document.getElementById('configTurno').value, 
-                data: document.getElementById('configData').value, loja: document.getElementById('configLoja').value
-            };
-
+            const obj = { valor: somaTemporaria, descricao: desc, id: idEdicao ? parseInt(idEdicao) : Date.now(), tipo: tipoAtual, turno: document.getElementById('configTurno').value, data: document.getElementById('configData').value, loja: document.getElementById('configLoja').value };
             if(idEdicao) {
                 const idxDB = db.lancamentos.findIndex(l => l.id == idEdicao);
                 const idxTurno = caixaTurno.lancamentos.findIndex(l => l.id == idEdicao);
@@ -313,19 +298,12 @@
                 caixaTurno.lancamentos.push(obj);
                 db.lancamentos.push(obj);
             }
-            fecharModais(); 
-            await salvarSessao();
-            calcularPainel();
+            fecharModais(); await salvarSessao(); calcularPainel();
         }
 
         window.abrirCaixa = async function() { 
             const v = prompt("Saldo Inicial:"); 
-            if(v !== null) { 
-                caixaTurno.saldoInicial = parseFloat(v)||0; 
-                caixaTurno.aberto = true; 
-                await salvarSessao(); 
-                carregarSessaoAtual(); 
-            } 
+            if(v !== null) { caixaTurno.saldoInicial = parseFloat(v)||0; caixaTurno.aberto = true; await salvarSessao(); carregarSessaoAtual(); } 
         }
 
         window.encerrarEImprimir = async function() {
@@ -349,7 +327,6 @@
             gerarLayoutRelatorio(dadosFechamento);
         }
 
-        // --- AUXILIARES ---
         window.fecharModais = function() { document.querySelectorAll('.modal').forEach(m => m.classList.add('opacity-0', 'pointer-events-none')); }
         window.abrirModal = function(tipo) {
             if(!caixaTurno.aberto) return alert("Abra o caixa!");
@@ -398,19 +375,19 @@
             }
         }
 
-        // --- RELATÓRIOS E IMPRESSÃO ---
         window.imprimirCupomItem = function(id) {
             const item = db.lancamentos.find(l => l.id === id);
             if(!item) return;
+            // Estilo inline com negrito reforçado para térmica
             document.getElementById('areaImpressao').innerHTML = `
-                <div style="text-align:center; font-weight:bold;">${item.loja}</div>
-                <div style="text-align:center; margin-bottom:10px;">CUPOM DE LANÇAMENTO</div>
-                <hr style="border: 0.5px dashed #000;">
-                <p>DATA: ${item.data} | TURNO: ${item.turno}</p>
-                <p>TIPO: ${item.tipo.toUpperCase()}</p>
-                <p>DESC: ${item.descricao}</p>
-                <hr style="border: 0.5px dashed #000;">
-                <div style="text-align:right; font-size:16px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>`;
+                <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
+                <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
+                <hr>
+                <p><b>DATA: ${item.data} | TURNO: ${item.turno}</b></p>
+                <p><b>TIPO: ${item.tipo.toUpperCase()}</b></p>
+                <p><b>DESC: ${item.descricao}</b></p>
+                <hr>
+                <div style="text-align:right; font-size:18px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>`;
             window.print();
         }
 
@@ -419,38 +396,26 @@
             const soma = (lista) => lista.reduce((a,b) => a + b.valor, 0);
             const tItens = dados.vendas.reduce((a,b) => a + b.itens, 0);
             const tServico = dados.vendas.reduce((a,b) => a + b.servico, 0);
-            const vEnt = soma(filtrar('entrada'));
-            const vSai = soma(filtrar('saida'));
-            const vPen = soma(filtrar('pendente'));
-            const vLiq = (vEnt + vSai + vPen + dados.saldoFinal) - dados.saldoInicial;
-
-            let html = `<div style="text-align:center; font-weight:bold; font-size:14px;">${dados.loja}</div>
-                <div style="text-align:center;">RELATÓRIO DE FECHAMENTO</div>
-                <div style="text-align:center; font-size:10px;">${dados.dataHora}</div>
-                <hr style="border: 0.5px dashed #000;">
-                <p>DATA REF: ${dados.data} | TURNO: ${dados.turno}</p>
-                <p>ABERTURA: R$ ${dados.saldoInicial.toFixed(2)}</p>
-                <p>GAVETA FINAL: R$ ${dados.saldoFinal.toFixed(2)}</p>
-                <hr style="border: 0.5px dashed #000;">
-                <p><b>FATURAMENTO DO TURNO</b></p>
-                <p>Venda Itens: R$ ${tItens.toFixed(2)}</p>
-                <p>Venda Serviço: R$ ${tServico.toFixed(2)}</p>
-                <p>TOTAL BRUTO: R$ ${(tItens + tServico).toFixed(2)}</p>
-                <hr style="border: 0.5px dashed #000;">
+            
+            let html = `<div style="text-align:center; font-weight:900; font-size:16px;">${dados.loja}</div>
+                <div style="text-align:center; font-weight:bold;">RELATÓRIO DE FECHAMENTO</div>
+                <hr>
+                <p><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
+                <p><b>VENDA ITENS: R$ ${tItens.toFixed(2)}</b></p>
+                <p><b>VENDA SERVIÇO: R$ ${tServico.toFixed(2)}</b></p>
+                <hr>
                 <p><b>(+) ENTRADAS</b></p>`;
-            filtrar('entrada').forEach(l => html += `<p>${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`);
-            html += `<hr style="border: 0.5px dashed #000;"><p><b>(-) SAÍDAS</b></p>`;
-            filtrar('saida').forEach(l => html += `<p>${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`);
-            html += `<hr style="border: 0.5px dashed #000;"><p><b>(⏳) PENDENTES</b></p>`;
-            filtrar('pendente').forEach(l => html += `<p>${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`);
-            html += `<br><br><div style="text-align:center;">Assinatura: _________________</div>`;
+            filtrar('entrada').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
+            html += `<hr><p><b>(-) SAÍDAS</b></p>`;
+            filtrar('saida').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
+            html += `<br><br><div style="text-align:center; font-weight:bold;">_________________</div>`;
             document.getElementById('areaImpressao').innerHTML = html;
             window.print();
         }
 
         window.abrirHistorico = function() {
-            if(db.historicoFechamentos.length === 0) return alert("Vazio.");
             const lista = [...db.historicoFechamentos].slice(-10).reverse();
+            if(lista.length === 0) return alert("Vazio.");
             let msg = "Últimos 10:\n";
             lista.forEach((h, i) => msg += `${i+1}. ${h.data} - ${h.turno}\n`);
             const op = prompt(msg + "Número para reimprimir:");
@@ -475,6 +440,10 @@
             const vF = db.vendas.filter(v => v.data === data && v.loja === loja);
             const lF = db.lancamentos.filter(l => l.data === data && l.loja === loja);
             const m = db.manuais[`${loja}_${data}`] || { delivery:0, descDeliv:0, taxa:0, couvert:0 };
+            document.getElementById('inputTotalDelivery').value = m.delivery || 0;
+            document.getElementById('inputDescDelivery').value = m.descDeliv || 0;
+            document.getElementById('inputTaxaEntrega').value = m.taxa || 0;
+            document.getElementById('inputCouvert').value = m.couvert || 0;
             const itensDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.itens, 0);
             const itensNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.itens, 0);
             const servTot = vF.reduce((a,b) => a + b.servico, 0);
@@ -496,7 +465,9 @@
                 taxa: parseFloat(document.getElementById('inputTaxaEntrega').value) || 0,
                 couvert: parseFloat(document.getElementById('inputCouvert').value) || 0
             };
-            await salvarSessao(); renderizarAcumuladoDia();
+            await salvarSessao();
+            renderizarAcumuladoDia();
+            alert("✅ Dados salvos com sucesso!");
         }
     </script>
 </body>
