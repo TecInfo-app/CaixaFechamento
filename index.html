@@ -508,18 +508,34 @@
     }
 }
         window.salvarDadosManuais = async function() {
-            const loja = document.getElementById('filtroLojaVendaDia').value;
-            const data = document.getElementById('filtroDataVendaDia').value;
-            db.manuais[`${loja}_${data}`] = {
-                delivery: parseFloat(document.getElementById('inputTotalDelivery').value) || 0,
-                descDeliv: parseFloat(document.getElementById('inputDescDelivery').value) || 0,
-                taxa: parseFloat(document.getElementById('inputTaxaEntrega').value) || 0,
-                couvert: parseFloat(document.getElementById('inputCouvert').value) || 0
-            };
-            await salvarSessao();
-            renderizarAcumuladoDia();
-            alert("✅ Dados salvos com sucesso!");
-        }
+    const loja = document.getElementById('filtroLojaVendaDia').value;
+    // Salvamos os dados na data de INÍCIO selecionada
+    const data = document.getElementById('filtroDataInicio').value;
+
+    if (!loja || !data) return alert("Selecione a loja e a data de início.");
+
+    const idDia = `${loja}_${data}`;
+    
+    // Captura os valores dos campos (certifique-se que os IDs batem com seu HTML)
+    const dados = {
+        delivery: parseFloat(document.getElementById('inputTotalDelivery')?.value) || 0,
+        taxaEntrega: parseFloat(document.getElementById('inputTaxaEntrega')?.value) || 0,
+        couvert: parseFloat(document.getElementById('inputCouvert')?.value) || 0,
+        descricaoDeliv: document.getElementById('inputDescDelivery')?.value || ""
+    };
+
+    // Salva no objeto global db (que sincroniza com Firebase)
+    if (!db.dadosManuais) db.dadosManuais = {};
+    db.dadosManuais[idDia] = dados;
+
+    try {
+        await salvarSessao(); // Envia para o Firebase
+        alert("Dados salvos com sucesso para o dia " + data.split('-').reverse().join('/'));
+        renderizarAcumuladoDia(); // Atualiza os cálculos na tela
+    } catch (e) {
+        alert("Erro ao salvar: " + e.message);
+    }
+}
 		
 		function carregarListboxLojas() {
     const campoSelect = document.getElementById('filtroLojaVendaDia');
@@ -544,4 +560,5 @@
     </script>
 </body>
 </html>
+
 
