@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Ágil v24 - CIA DO CHOPP</title>
+    <title>Gestão Ágil v25 - Histórico com Operador</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .modal { transition: opacity 0.2s ease; }
@@ -12,27 +12,21 @@
         .btn-acao { @apply p-1 bg-white border rounded shadow hover:bg-gray-100 text-[10px] px-2 flex items-center justify-center; }
         input[type="number"]::-webkit-inner-spin-button { display: none; }
         
-        /* AJUSTES PARA IMPRESSÃO ESCURA */
         @media print {
             body * { visibility: hidden !important; }
             #areaImpressao, #areaImpressao * { 
                 visibility: visible !important; 
                 color: #000 !important; 
-                /* O text-shadow abaixo ajuda a "engrossar" a letra na térmica */
                 text-shadow: 0.5px 0 0 #000, 0 0.5px 0 #000;
             }
             #areaImpressao { 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100%; 
-                display: block !important; 
-                line-height: 1.2;
+                position: absolute; left: 0; top: 0; width: 100%; display: block !important; 
+                line-height: 1.2; font-family: 'Courier New', monospace;
             }
             .no-print { display: none !important; }
-            hr { border-top: 1px dashed #000 !important; }
+            hr { border-top: 1px dashed #000 !important; margin: 5px 0; }
         }
-        #areaImpressao { display: none; font-family: 'Courier New', Courier, monospace; font-size: 13px; }
+        #areaImpressao { display: none; font-size: 13px; }
     </style>
 </head>
 <body class="bg-gray-100 p-2 md:p-6 font-sans text-gray-800">
@@ -56,6 +50,7 @@
                 <select id="configTurno" onchange="salvarSessao(); calcularPainel();" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold text-white">
                     <option value="Dia" class="text-black">🌞 Turno Dia</option>
                     <option value="Noite" class="text-black">🌚 Turno Noite</option>
+					<select id="filtroLojaVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
                 </select>
             </div>
         </div>
@@ -65,32 +60,37 @@
             <button id="btnFecharCaixa" onclick="encerrarEImprimir()" class="flex-1 bg-red-600 text-white font-black py-4 uppercase text-sm hidden">🏁 Encerrar Turno & Imprimir</button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-200 border-x border-gray-300">
-            <div class="card-calc border-blue-500 cursor-pointer" onclick="abrirModalVendaDia()">
-                <label class="text-[10px] font-bold text-gray-400 uppercase italic">Volume Líquido</label>
-                <div id="displayVolume" class="text-xl font-black text-blue-600">R$ 0,00</div>
-            </div>
-            <div class="card-calc border-purple-600">
-                <label class="text-[10px] font-bold text-gray-400 uppercase italic">Venda Itens (Turno)</label>
-                <div id="displayTotalItensTurno" class="text-xl font-black text-purple-600">R$ 0,00</div>
-            </div>
-            <div class="card-calc border-orange-500">
-                <label class="text-[10px] font-bold text-gray-400 uppercase italic">Diferença</label>
-                <div id="displayDiferenca" class="text-xl font-black text-orange-600">R$ 0,00</div>
-            </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-200 border-x border-gray-300">
+    <div class="card-calc border-blue-500 cursor-pointer" onclick="abrirModalVendaDia()">
+        <label class="text-[10px] font-bold text-gray-400 uppercase italic">Vol. Líquido</label>
+        <div id="displayVolume" class="text-xl font-black text-blue-600">R$ 0,00</div>
+    </div>
+    <div class="card-calc border-purple-600">
+        <label class="text-[10px] font-bold text-gray-400 uppercase italic">Venda Itens</label>
+        <div id="displayTotalItensTurno" class="text-xl font-black text-purple-600">R$ 0,00</div>
+    </div>
+    <div class="card-calc border-teal-500">
+        <label class="text-[10px] font-bold text-teal-600/50 uppercase italic">Serviço</label>
+        <div id="displayServicoTurno" class="text-xl font-black text-teal-600">R$ 0,00</div>
+    </div>
+    <div class="card-calc border-orange-500">
+        <label class="text-[10px] font-bold text-gray-400 uppercase italic">Diferença</label>
+        <div id="displayDiferenca" class="text-xl font-black text-orange-600">R$ 0,00</div>
+    </div>
+</div>
         </div>
 
         <div id="areaOperacional" class="bg-white p-4 md:p-6 rounded-b-xl shadow-xl bloqueado-total">
             <div class="grid grid-cols-3 gap-4 mb-6">
-                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Informar Venda (3lm)</button>
-                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Venda do Dia</button>
+                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Venda</button>
+                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Dia</button>
                 <button onclick="abrirHistorico()" class="bg-gray-800 text-white py-3 rounded font-bold uppercase text-[10px]">📜 Histórico</button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 mb-6">
-                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">Consumo/Descontos</button>
-                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída/ajuste</button>
-                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pendentes</button>
+                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ Entr.</button>
+                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída</button>
+                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pend.</button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-4">
@@ -135,9 +135,9 @@
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-2 mt-4">
-                <button onclick="fecharModais()" class="bg-gray-200 py-3 rounded font-bold uppercase text-xs">Sair</button>
-                <button onclick="confirmarLancamentos()" class="bg-blue-600 text-white py-3 rounded font-bold uppercase text-xs">Salvar</button>
-            </div>
+    <button onclick="confirmarLancamentos()" class="bg-blue-600 text-white py-3 rounded font-bold uppercase text-xs">Salvar</button>
+    <button onclick="fecharModais()" class="bg-gray-200 py-3 rounded font-bold uppercase text-xs">Sair</button>
+</div>
         </div>
     </div>
 
@@ -145,10 +145,19 @@
         <div class="absolute inset-0 bg-black opacity-60" onclick="fecharModais()"></div>
         <div class="relative bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl overflow-y-auto max-h-[90vh]">
             <h2 class="text-xl font-black text-indigo-700 uppercase italic mb-4 border-b">📊 Fechamento Consolidado</h2>
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <select id="filtroLojaVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none"></select>
-                <input type="date" id="filtroDataVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
-            </div>
+            <div>
+			<div class="mb-4">
+    <label class="text-[10px] font-bold uppercase text-gray-500">Selecionar Loja</label>
+    <select id="filtroLojaVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
+        </select>
+</div>
+    <label class="text-[10px] font-bold uppercase text-gray-500">Início</label>
+    <input type="date" id="filtroDataInicio" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
+</div>
+<div>
+    <label class="text-[10px] font-bold uppercase text-gray-500">Fim</label>
+    <input type="date" id="filtroDataFim" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
+</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
                 <div class="space-y-3">
                     <h4 class="font-black text-green-700 uppercase text-[10px] border-b">Faturamento (+)</h4>
@@ -158,7 +167,8 @@
                 </div>
                 <div class="space-y-3">
                     <h4 class="font-black text-red-700 uppercase text-[10px] border-b">Deduções (-)</h4>
-                    <div class="flex justify-between"><span>Serviços:</span><b id="vdServTot" class="text-red-500">0,00</b></div>
+                    <div class="flex justify-between"><span>Serviço Dia:</span><b id="vdServDia" class="text-red-500">0,00</b></div>
+<div class="flex justify-between"><span>Serviço Noite:</span><b id="vdServNoite" class="text-red-500">0,00</b></div>
                     <div class="flex justify-between"><span>Entradas/Desc:</span><b id="vdDescTot" class="text-red-500">0,00</b></div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t">
                         <input type="number" id="inputDescDelivery" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Desc. Deliv.">
@@ -169,15 +179,13 @@
             </div>
             
             <div class="mt-8 flex gap-2">
-                <button onclick="salvarDadosManuais()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg uppercase text-xs shadow-lg hover:bg-green-700 transition">💾 Salvar Dados </button>
+                <button onclick="salvarDadosManuais()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg uppercase text-xs shadow-lg hover:bg-green-700 transition">💾 Salvar Dados Manuais</button>
                 <button onclick="window.print()" class="bg-gray-800 text-white p-3 rounded-lg shadow-lg">🖨️</button>
             </div>
 
-            <div class="mt-4 bg-indigo-900 text-white p-5 rounded-lg flex justify-between items-center shadow-2xl">
-                <div>
-                    <p class="text-[10px] uppercase font-bold text-indigo-300">Total Líquido do Dia</p>
-                    <p id="vdTotalFinal" class="text-3xl font-black text-green-400 font-mono">R$ 0,00</p>
-                </div>
+            <div class="mt-4 bg-indigo-900 text-white p-5 rounded-lg">
+                <p class="text-[10px] uppercase font-bold text-indigo-300">Total Líquido do Dia</p>
+                <p id="vdTotalFinal" class="text-3xl font-black text-green-400 font-mono">R$ 0,00</p>
             </div>
         </div>
     </div>
@@ -192,13 +200,13 @@
         // 🔴 COLOQUE SUAS CONFIGURAÇÕES DO FIREBASE AQUI 🔴
         // ==========================================================
         const firebaseConfig = {
-  apiKey: "AIzaSyDfKa8kHi3x7KpoqnfC5f7riVckwAWyqlU",
-  authDomain: "caixaapp-745bc.firebaseapp.com",
-  projectId: "caixaapp-745bc",
-  storageBucket: "caixaapp-745bc.firebasestorage.app",
-  messagingSenderId: "404038552334",
-  appId: "1:404038552334:web:9a2c4b773688f2ade3a55f"
-};
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "SEU_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
         // ==========================================================
 
         const app = initializeApp(firebaseConfig);
@@ -209,12 +217,16 @@
         let somaTemporaria = 0, contagemTemporaria = 0, tipoAtual = '';
 
         window.onload = () => {
-            const hoje = new Date().toISOString().split('T')[0];
-            document.getElementById('configData').value = hoje;
-            document.getElementById('filtroDataVendaDia').value = hoje;
-            carregarSessaoAtual();
-            ouvirAtualizacoesGlobais();
-        };
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('configData').value = hoje;
+    
+    // Verifique se os novos IDs existem antes de atribuir
+    if(document.getElementById('filtroDataInicio')) document.getElementById('filtroDataInicio').value = hoje;
+    if(document.getElementById('filtroDataFim')) document.getElementById('filtroDataFim').value = hoje;
+    
+    carregarSessaoAtual();
+    ouvirAtualizacoesGlobais();
+};
 
         async function carregarSessaoAtual() {
             const loja = document.getElementById('configLoja').value;
@@ -222,9 +234,11 @@
             const docRef = doc(db_fs, "sessoes", `${loja}_${data}`);
             const docSnap = await getDoc(docRef);
             caixaTurno = docSnap.exists() ? docSnap.data() : { lancamentos: [], vendas: [], saldoInicial: 0, aberto: false };
+            
             const dbRef = doc(db_fs, "global", "dados");
             const dbSnap = await getDoc(dbRef);
             if(dbSnap.exists()) db = dbSnap.data();
+            
             document.getElementById('exibeSaldoIni').innerText = `R$ ${caixaTurno.saldoInicial.toFixed(2)}`;
             controlarUI();
             calcularPainel();
@@ -253,14 +267,18 @@
             const vSai = caixaTurno.lancamentos.filter(l => l.tipo === 'saida' && fTurno(l)).reduce((a,b) => a + b.valor, 0);
             const vPen = caixaTurno.lancamentos.filter(l => l.tipo === 'pendente' && fTurno(l)).reduce((a,b) => a + b.valor, 0);
             const tItens = caixaTurno.vendas.filter(fTurno).reduce((a,b) => a + b.itens, 0);
+			const tServicoTurno = caixaTurno.vendas.filter(fTurno).reduce((a,b) => a + b.servico, 0);
             const sFin = parseFloat(document.getElementById('saldoFinal').value) || 0;
             const volLiq = (vEnt + vSai + vPen + sFin) - caixaTurno.saldoInicial;
+            
             document.getElementById('totEntrada').innerText = vEnt.toFixed(2);
             document.getElementById('totSaida').innerText = vSai.toFixed(2);
             document.getElementById('totPendente').innerText = vPen.toFixed(2);
             document.getElementById('displayVolume').innerText = `R$ ${volLiq.toFixed(2)}`;
             document.getElementById('displayTotalItensTurno').innerText = `R$ ${tItens.toFixed(2)}`;
             document.getElementById('displayDiferenca').innerText = `R$ ${(volLiq - tItens).toFixed(2)}`;
+			document.getElementById('displayServicoTurno').innerText = `R$ ${tServicoTurno.toFixed(2)}`;
+            
             renderizarListaHome('entrada', 'listaHomeEntrada');
             renderizarListaHome('saida', 'listaHomeSaida');
             renderizarListaHome('pendente', 'listaHomePendente');
@@ -307,26 +325,26 @@
         }
 
         window.encerrarEImprimir = async function() {
-    if(!confirm("Fechar caixa e imprimir?")) return;
-    const sFin = parseFloat(document.getElementById('saldoFinal').value) || 0;
-    const dadosFechamento = {
-        id: Date.now(),
-        loja: document.getElementById('configLoja').value,
-        operador: document.getElementById('configOperador').value,
-        data: document.getElementById('configData').value,
-        turno: document.getElementById('configTurno').value,
-        saldoInicial: caixaTurno.saldoInicial,
-        saldoFinal: sFin,
-        lancamentos: [...caixaTurno.lancamentos.filter(l => l.turno === document.getElementById('configTurno').value)],
-        vendas: [...caixaTurno.vendas.filter(v => v.turno === document.getElementById('configTurno').value)],
-        dataHora: new Date().toLocaleString()
-    };
-    db.historicoFechamentos.push(dadosFechamento);
-    caixaTurno.aberto = false;
-    await salvarSessao();
-    carregarSessaoAtual();
-    gerarLayoutRelatorio(dadosFechamento);
-}
+            if(!confirm("Fechar caixa e imprimir?")) return;
+            const sFin = parseFloat(document.getElementById('saldoFinal').value) || 0;
+            const dadosFechamento = {
+                id: Date.now(),
+                loja: document.getElementById('configLoja').value,
+                operador: document.getElementById('configOperador').value, // Carimbando operador
+                data: document.getElementById('configData').value,
+                turno: document.getElementById('configTurno').value,
+                saldoInicial: caixaTurno.saldoInicial,
+                saldoFinal: sFin,
+                lancamentos: [...caixaTurno.lancamentos.filter(l => l.turno === document.getElementById('configTurno').value)],
+                vendas: [...caixaTurno.vendas.filter(v => v.turno === document.getElementById('configTurno').value)],
+                dataHora: new Date().toLocaleString()
+            };
+            db.historicoFechamentos.push(dadosFechamento);
+            caixaTurno.aberto = false;
+            await salvarSessao();
+            carregarSessaoAtual();
+            gerarLayoutRelatorio(dadosFechamento);
+        }
 
         window.fecharModais = function() { document.querySelectorAll('.modal').forEach(m => m.classList.add('opacity-0', 'pointer-events-none')); }
         window.abrirModal = function(tipo) {
@@ -379,7 +397,6 @@
         window.imprimirCupomItem = function(id) {
             const item = db.lancamentos.find(l => l.id === id);
             if(!item) return;
-            // Estilo inline com negrito reforçado para térmica
             document.getElementById('areaImpressao').innerHTML = `
                 <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
                 <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
@@ -393,39 +410,38 @@
         }
 
         function gerarLayoutRelatorio(dados) {
-    const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo);
-    const soma = (lista) => lista.reduce((a,b) => a + b.valor, 0);
-    const tItens = dados.vendas.reduce((a,b) => a + b.itens, 0);
-    const tServico = dados.vendas.reduce((a,b) => a + b.servico, 0);
-    
-    let html = `<div style="text-align:center; font-weight:900; font-size:16px;">${dados.loja}</div>
-        <div style="text-align:center; font-weight:bold;">RELATÓRIO DE FECHAMENTO</div>
-        <hr>
-        <p><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
-        <p><b>OPERADOR: ${dados.operador || '---'}</b></p>
-        <hr>
-        <p><b>VENDA ITENS: R$ ${tItens.toFixed(2)}</b></p>
-        <p><b>VENDA SERVIÇO: R$ ${tServico.toFixed(2)}</b></p>
-        <hr>
-        <p><b>(+) ENTRADAS</b></p>`;
-    filtrar('entrada').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
-    html += `<hr><p><b>(-) SAÍDAS</b></p>`;
-    filtrar('saida').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
-    html += `<br><br><div style="text-align:center; font-weight:bold;">Assinatura: _________________</div>`;
-    document.getElementById('areaImpressao').innerHTML = html;
-    window.print();
-}
+            const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo);
+            const soma = (lista) => lista.reduce((a,b) => a + b.valor, 0);
+            const tItens = dados.vendas.reduce((a,b) => a + b.itens, 0);
+            const tServico = dados.vendas.reduce((a,b) => a + b.servico, 0);
+            
+            let html = `<div style="text-align:center; font-weight:900; font-size:16px;">${dados.loja}</div>
+                <div style="text-align:center; font-weight:bold;">RELATÓRIO DE FECHAMENTO</div>
+                <hr>
+                <p><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
+                <p><b>OPERADOR: ${dados.operador || '---'}</b></p>
+                <hr>
+                <p><b>VENDA ITENS: R$ ${tItens.toFixed(2)}</b></p>
+                <p><b>VENDA SERVIÇO: R$ ${tServico.toFixed(2)}</b></p>
+                <hr>
+                <p><b>(+) ENTRADAS</b></p>`;
+            filtrar('entrada').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
+            html += `<hr><p><b>(-) SAÍDAS</b></p>`;
+            filtrar('saida').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
+            html += `<br><br><div style="text-align:center; font-weight:bold;">Assinatura: _________________</div>`;
+            document.getElementById('areaImpressao').innerHTML = html;
+            window.print();
+        }
 
         window.abrirHistorico = function() {
-    const lista = [...db.historicoFechamentos].slice(-10).reverse();
-    if(lista.length === 0) return alert("Vazio.");
-    let msg = "Últimos 10 fechamentos:\n\n";
-    lista.forEach((h, i) => {
-        msg += `${i+1}. ${h.data} - ${h.turno} [Op: ${h.operador || '---'}]\n`;
-    });
-    const op = prompt(msg + "\nDigite o número para reimprimir:");
-    if(op && lista[op-1]) gerarLayoutRelatorio(lista[op-1]);
-}
+            const lista = [...db.historicoFechamentos].slice(-10).reverse();
+            if(lista.length === 0) return alert("Vazio.");
+            let msg = "Últimos 10 fechamentos:\n\n";
+            // Adicionado o operador na lista abaixo:
+            lista.forEach((h, i) => msg += `${i+1}. ${h.data} - ${h.turno} [Op: ${h.operador || '---'}]\n`);
+            const op = prompt(msg + "\nDigite o número para reimprimir:");
+            if(op && lista[op-1]) gerarLayoutRelatorio(lista[op-1]);
+        }
 
         function controlarUI() {
             const area = document.getElementById('areaOperacional');
@@ -433,34 +449,64 @@
             else { area.classList.add('bloqueado-total'); document.getElementById('btnFecharCaixa').classList.add('hidden'); document.getElementById('btnAbrirCaixa').classList.remove('hidden'); }
         }
 
-        window.abrirModalVendaDia = function() { carregarListboxLojas(); renderizarAcumuladoDia(); document.getElementById('modalVendaDia').classList.remove('opacity-0', 'pointer-events-none'); }
-        function carregarListboxLojas() {
-            const lojas = new Set([...db.vendas, ...db.lancamentos].map(x => x.loja));
-            lojas.add(document.getElementById('configLoja').value);
-            document.getElementById('filtroLojaVendaDia').innerHTML = [...lojas].map(l => `<option value="${l}">${l}</option>`).join("");
-        }
+        window.abrirModalVendaDia = function() {
+    // Se a função carregarListboxLojas existir, chama ela
+    if (typeof carregarListboxLojas === "function") carregarListboxLojas();
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    const campoIni = document.getElementById('filtroDataInicio');
+    const campoFim = document.getElementById('filtroDataFim');
+    
+    // Preenche com a data de hoje apenas se os campos forem encontrados
+    if (campoIni) campoIni.value = hoje;
+    if (campoFim) campoFim.value = hoje;
+    
+    renderizarAcumuladoDia(); 
+    document.getElementById('modalVendaDia').classList.remove('opacity-0', 'pointer-events-none');
+}
         window.renderizarAcumuladoDia = function() {
-            const loja = document.getElementById('filtroLojaVendaDia').value;
-            const data = document.getElementById('filtroDataVendaDia').value;
-            const vF = db.vendas.filter(v => v.data === data && v.loja === loja);
-            const lF = db.lancamentos.filter(l => l.data === data && l.loja === loja);
-            const m = db.manuais[`${loja}_${data}`] || { delivery:0, descDeliv:0, taxa:0, couvert:0 };
-            document.getElementById('inputTotalDelivery').value = m.delivery || 0;
-            document.getElementById('inputDescDelivery').value = m.descDeliv || 0;
-            document.getElementById('inputTaxaEntrega').value = m.taxa || 0;
-            document.getElementById('inputCouvert').value = m.couvert || 0;
-            const itensDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.itens, 0);
-            const itensNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.itens, 0);
-            const servTot = vF.reduce((a,b) => a + b.servico, 0);
-            const descTot = lF.filter(l => l.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
-            document.getElementById('vdItensDia').innerText = itensDia.toFixed(2);
-            document.getElementById('vdItensNoite').innerText = itensNoite.toFixed(2);
-            document.getElementById('vdServTot').innerText = servTot.toFixed(2);
-            document.getElementById('vdDescTot').innerText = descTot.toFixed(2);
-            const bruto = itensDia + itensNoite + m.delivery;
-            const deducoes = servTot + descTot + m.descDeliv + m.taxa + m.couvert;
-            document.getElementById('vdTotalFinal').innerText = `R$ ${(bruto - deducoes).toFixed(2)}`;
-        }
+    const loja = document.getElementById('filtroLojaVendaDia')?.value;
+    const dataInicio = document.getElementById('filtroDataInicio')?.value;
+    const dataFim = document.getElementById('filtroDataFim')?.value;
+
+    if (!loja || !dataInicio || !dataFim) return;
+
+    // Filtra vendas onde a data está entre o Início e o Fim
+    const vF = db.vendas.filter(v => 
+        v.loja === loja && 
+        v.data >= dataInicio && 
+        v.data <= dataFim
+    );
+
+    const lF = db.lancamentos.filter(l => 
+        l.loja === loja && 
+        l.data >= dataInicio && 
+        l.data <= dataFim
+    );
+
+    // Somas por turno (Dia/Noite)
+    const itensDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.itens, 0);
+    const itensNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.itens, 0);
+    const servDia = vF.filter(v => v.turno === 'Dia').reduce((a,b) => a + b.servico, 0);
+    const servNoite = vF.filter(v => v.turno === 'Noite').reduce((a,b) => a + b.servico, 0);
+    const descTot = lF.filter(l => l.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
+
+    // Atualiza os textos na tela
+    const atualizar = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val.toFixed(2); };
+    
+    atualizar('vdItensDia', itensDia);
+    atualizar('vdItensNoite', itensNoite);
+    atualizar('vdServDia', servDia);
+    atualizar('vdServNoite', servNoite);
+    atualizar('vdDescTot', descTot);
+
+    const bruto = itensDia + itensNoite;
+    const deducoes = (servDia + servNoite) + descTot;
+    
+    if(document.getElementById('vdTotalFinal')) {
+        document.getElementById('vdTotalFinal').innerText = `R$ ${(bruto - deducoes).toFixed(2)}`;
+    }
+}
         window.salvarDadosManuais = async function() {
             const loja = document.getElementById('filtroLojaVendaDia').value;
             const data = document.getElementById('filtroDataVendaDia').value;
@@ -474,11 +520,27 @@
             renderizarAcumuladoDia();
             alert("✅ Dados salvos com sucesso!");
         }
+		
+		function carregarListboxLojas() {
+    const campoSelect = document.getElementById('filtroLojaVendaDia');
+    if (!campoSelect) return;
+
+    const lojasSet = new Set();
+    
+    // Adiciona a loja configurada no topo
+    const lojaPadrao = document.getElementById('configLoja').value;
+    if(lojaPadrao) lojasSet.add(lojaPadrao);
+
+    // Varre o banco de dados em busca de outras lojas já registradas
+    if (db.vendas) db.vendas.forEach(v => { if(v.loja) lojasSet.add(v.loja); });
+    if (db.lancamentos) db.lancamentos.forEach(l => { if(l.loja) lojasSet.add(l.loja); });
+
+    // Preenche o campo de seleção
+    campoSelect.innerHTML = [...lojasSet].map(l => `<option value="${l}">${l}</option>`).join("");
+    
+    // Garante que a loja atual fique selecionada
+    campoSelect.value = lojaPadrao;
+}
     </script>
 </body>
 </html>
-
-
-
-
-
