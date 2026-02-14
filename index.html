@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Ágil v25 - Histórico com Operador</title>
+    <title>Gestão Ágil v25 - Cia do Chopp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .modal { transition: opacity 0.2s ease; }
@@ -82,15 +82,15 @@
 
         <div id="areaOperacional" class="bg-white p-4 md:p-6 rounded-b-xl shadow-xl bloqueado-total">
             <div class="grid grid-cols-3 gap-4 mb-6">
-                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Venda</button>
-                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 Dia</button>
-                <button onclick="abrirHistorico()" class="bg-gray-800 text-white py-3 rounded font-bold uppercase text-[10px]">📜 Histórico</button>
+                <button onclick="abrirModalVenda()" class="bg-purple-600 text-white py-3 rounded font-bold uppercase text-[10px]">🛒 Informar Venda(3lm)</button>
+                <button onclick="abrirModalVendaDia()" class="bg-indigo-600 text-white py-3 rounded font-bold uppercase text-[10px]">📊 venda do dia</button>
+                <button onclick="abrirHistorico()" class="bg-gray-800 text-white py-3 rounded font-bold uppercase text-[10px]">📜 Histórico(reimprimir)</button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 mb-6">
-                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ Entr.</button>
-                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- Saída</button>
-                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pend.</button>
+                <button onclick="abrirModal('entrada')" class="bg-blue-600 text-white py-2 rounded font-bold uppercase text-[10px]">+ consumo/descontos.</button>
+                <button onclick="abrirModal('saida')" class="bg-red-600 text-white py-2 rounded font-bold uppercase text-[10px]">- dinheiro/ajuste/getnet</button>
+                <button onclick="abrirModal('pendente')" class="bg-orange-500 text-white py-2 rounded font-bold uppercase text-[10px]">⏳ Pendentes.</button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-4">
@@ -421,12 +421,12 @@
                 <p><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
                 <p><b>OPERADOR: ${dados.operador || '---'}</b></p>
                 <hr>
-                <p><b>VENDA ITENS: R$ ${tItens.toFixed(2)}</b></p>
+                <p><b>TOTAL DE ITENS: R$ ${tItens.toFixed(2)}</b></p>
                 <p><b>VENDA SERVIÇO: R$ ${tServico.toFixed(2)}</b></p>
                 <hr>
-                <p><b>(+) ENTRADAS</b></p>`;
+                <p><b>(-) CONSUMO/DESCONTOS</b></p>`;
             filtrar('entrada').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
-            html += `<hr><p><b>(-) SAÍDAS</b></p>`;
+            html += `<hr><p><b>(+) DINHEIRO/AJUSTE/GETNET</b></p>`;
             filtrar('saida').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
             html += `<br><br><div style="text-align:center; font-weight:bold;">Assinatura: _________________</div>`;
             document.getElementById('areaImpressao').innerHTML = html;
@@ -576,6 +576,7 @@
     </script>
 </body>
 </html>
+
 
 
 
