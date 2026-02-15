@@ -13,20 +13,39 @@
         input[type="number"]::-webkit-inner-spin-button { display: none; }
         
         @media print {
-            body * { visibility: hidden !important; }
-            #areaImpressao, #areaImpressao * { 
-                visibility: visible !important; 
-                color: #000 !important; 
-                text-shadow: 0.5px 0 0 #000, 0 0.5px 0 #000;
-            }
-            #areaImpressao { 
-                position: absolute; left: 0; top: 0; width: 100%; display: block !important; 
-                line-height: 1.2; font-family: 'Courier New', monospace;
-            }
-            .no-print { display: none !important; }
-            hr { border-top: 1px dashed #000 !important; margin: 5px 0; }
-        }
-        #areaImpressao { display: none; font-size: 13px; }
+    /* Esconde tudo que não deve ser impresso */
+    body * { visibility: hidden !important; }
+
+    /* Torna a área de impressão visível e define o tamanho da fonte */
+    #areaImpressao, #areaImpressao * { 
+        visibility: visible !important; 
+        color: #000 !important; 
+        /* Mantém o negrito suave para impressoras térmicas */
+        text-shadow: 0.5px 0 0 #000; 
+    }
+
+    #areaImpressao { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        display: block !important; 
+        line-height: 1.4; 
+        font-family: 'Courier New', monospace;
+        
+        /* A FONTE DEVE FICAR AQUI DENTRO */
+        font-size: 20px !important; 
+    }
+
+    /* Remove botões e elementos desnecessários no papel */
+    .no-print { display: none !important; }
+    
+    /* Melhora a visibilidade dos divisores */
+    hr { border-top: 2px dashed #000 !important; margin: 8px 0; }
+}
+
+/* Esconde o elemento da tela normal do sistema */
+#areaImpressao { display: none; }
     </style>
 </head>
 <body class="bg-gray-100 p-2 md:p-6 font-sans text-gray-800">
@@ -576,6 +595,7 @@
     </script>
 </body>
 </html>
+
 
 
 
