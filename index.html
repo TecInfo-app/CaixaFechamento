@@ -414,19 +414,26 @@
         }
 
         window.imprimirCupomItem = function(id) {
-            const item = db.lancamentos.find(l => l.id === id);
-            if(!item) return;
-            document.getElementById('areaImpressao').innerHTML = `
-                <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
-                <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
-                <hr>
-                <p><b>DATA: ${item.data} | TURNO: ${item.turno}</b></p>
-                <p><b>TIPO: ${item.tipo.toUpperCase()}</b></p>
-                <p><b>DESC: ${item.descricao}</b></p>
-                <hr>
-                <div style="text-align:right; font-size:18px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>`;
-            window.print();
-        }
+    const item = db.lancamentos.find(l => l.id === id);
+    if(!item) return;
+
+    document.getElementById('areaImpressao').innerHTML = `
+        <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
+        <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
+        <hr>
+        <p><b>DATA: ${item.data} | TURNO: ${item.turno}</b></p>
+        <p><b>TIPO: ${item.tipo.toUpperCase()}</b></p>
+        <p><b>DESC: ${item.descricao}</b></p>
+        <hr>
+        <div style="text-align:right; font-size:18px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>
+        
+        <br><br><br>
+        <div style="text-align:center; border-top: 1px solid #000; margin: 0 20px;">
+            <b style="font-size: 14px;">ASSINATURA</b>
+        </div>
+    `;
+    window.print();
+}
 
         function gerarLayoutRelatorio(dados) {
             const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo);
@@ -595,6 +602,7 @@
     </script>
 </body>
 </html>
+
 
 
 
