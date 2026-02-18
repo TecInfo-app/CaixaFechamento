@@ -13,39 +13,20 @@
         input[type="number"]::-webkit-inner-spin-button { display: none; }
         
         @media print {
-    /* Esconde tudo que não deve ser impresso */
-    body * { visibility: hidden !important; }
-
-    /* Torna a área de impressão visível e define o tamanho da fonte */
-    #areaImpressao, #areaImpressao * { 
-        visibility: visible !important; 
-        color: #000 !important; 
-        /* Mantém o negrito suave para impressoras térmicas */
-        text-shadow: 0.5px 0 0 #000; 
-    }
-
-    #areaImpressao { 
-        position: absolute; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        display: block !important; 
-        line-height: 1.4; 
-        font-family: 'Courier New', monospace;
-        
-        /* A FONTE DEVE FICAR AQUI DENTRO */
-        font-size: 20px !important; 
-    }
-
-    /* Remove botões e elementos desnecessários no papel */
-    .no-print { display: none !important; }
-    
-    /* Melhora a visibilidade dos divisores */
-    hr { border-top: 2px dashed #000 !important; margin: 8px 0; }
-}
-
-/* Esconde o elemento da tela normal do sistema */
-#areaImpressao { display: none; }
+            body * { visibility: hidden !important; }
+            #areaImpressao, #areaImpressao * { 
+                visibility: visible !important; 
+                color: #000 !important; 
+                text-shadow: 0.5px 0 0 #000, 0 0.5px 0 #000;
+            }
+            #areaImpressao { 
+                position: absolute; left: 0; top: 0; width: 100%; display: block !important; 
+                line-height: 1.2; font-family: 'Courier New', monospace;
+            }
+            .no-print { display: none !important; }
+            hr { border-top: 1px dashed #000 !important; margin: 5px 0; }
+        }
+        #areaImpressao { display: none; font-size: 13px; }
     </style>
 </head>
 <body class="bg-gray-100 p-2 md:p-6 font-sans text-gray-800">
@@ -414,26 +395,19 @@
         }
 
         window.imprimirCupomItem = function(id) {
-    const item = db.lancamentos.find(l => l.id === id);
-    if(!item) return;
-
-    document.getElementById('areaImpressao').innerHTML = `
-        <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
-        <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
-        <hr>
-        <p><b>DATA: ${item.data} | TURNO: ${item.turno}</b></p>
-        <p><b>TIPO: ${item.tipo.toUpperCase()}</b></p>
-        <p><b>DESC: ${item.descricao}</b></p>
-        <hr>
-        <div style="text-align:right; font-size:18px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>
-        
-        <br><br><br>
-        <div style="text-align:center; border-top: 1px solid #000; margin: 0 20px;">
-            <b style="font-size: 14px;">ASSINATURA</b>
-        </div>
-    `;
-    window.print();
-}
+            const item = db.lancamentos.find(l => l.id === id);
+            if(!item) return;
+            document.getElementById('areaImpressao').innerHTML = `
+                <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
+                <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
+                <hr>
+                <p><b>DATA: ${item.data} | TURNO: ${item.turno}</b></p>
+                <p><b>TIPO: ${item.tipo.toUpperCase()}</b></p>
+                <p><b>DESC: ${item.descricao}</b></p>
+                <hr>
+                <div style="text-align:right; font-size:18px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>`;
+            window.print();
+        }
 
         function gerarLayoutRelatorio(dados) {
             const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo);
@@ -502,7 +476,7 @@
     const lF = db.lancamentos.filter(l => l.loja === loja && l.data >= dataInicio && l.data <= dataFim);
 
     // 2. SOMA DE DADOS MANUAIS POR PERÍODO (Nova Lógica)
-    let totalDelivery = 0, totalTaxa = 0, totalCouvert = 0;
+    let totalDelivery = 0, totalTaxa = 0, totalCouvert = 0, totalDescDeliv = 0;
     
     // Transforma as datas em objetos para podermos contar os dias
     let dataAtual = new Date(dataInicio + 'T00:00:00');
@@ -516,6 +490,7 @@
             totalDelivery += parseFloat(db.dadosManuais[idDia].delivery || 0);
             totalTaxa += parseFloat(db.dadosManuais[idDia].taxaEntrega || 0);
             totalCouvert += parseFloat(db.dadosManuais[idDia].couvert || 0);
+			totalDescDeliv += parseFloat(db.dadosManuais[idDia].descDelivery || 0);
         }
         dataAtual.setDate(dataAtual.getDate() + 1); // Pula para o próximo dia
     }
@@ -542,12 +517,13 @@
     if(document.getElementById('inputCouvert')) document.getElementById('inputCouvert').value = totalCouvert.toFixed(2);
 
     // Cálculo do Líquido Final
-    const faturamento = itensDia + itensNoite + totalDelivery + totalCouvert;
-    const deducoes = servDia + servNoite + totalTaxa + entradas;
-    
-    if(document.getElementById('vdTotalFinal')) {
-        document.getElementById('vdTotalFinal').innerText = `R$ ${(faturamento - deducoes).toFixed(2)}`;
-    }
+    const faturamento = itensDia + itensNoite + totalDelivery;
+// Adicionamos o totalDescDeliv aqui nas deduções
+const deducoes = servDia + servNoite + totalTaxa + entradas + totalCouvert + totalDescDeliv; 
+
+if(document.getElementById('vdTotalFinal')) {
+    document.getElementById('vdTotalFinal').innerText = `R$ ${(faturamento - deducoes).toFixed(2)}`;
+}
 }
         window.salvarDadosManuais = async function() {
     const loja = document.getElementById('filtroLojaVendaDia').value;
@@ -563,6 +539,7 @@
         delivery: parseFloat(document.getElementById('inputTotalDelivery')?.value) || 0,
         taxaEntrega: parseFloat(document.getElementById('inputTaxaEntrega')?.value) || 0,
         couvert: parseFloat(document.getElementById('inputCouvert')?.value) || 0,
+		descDelivery: parseFloat(document.getElementById('inputDescDelivery')?.value) || 0,
         descricaoDeliv: document.getElementById('inputDescDelivery')?.value || ""
     };
 
@@ -602,8 +579,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
