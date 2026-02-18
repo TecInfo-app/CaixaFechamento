@@ -169,7 +169,7 @@
                     <h4 class="font-black text-red-700 uppercase text-[10px] border-b">Deduções (-)</h4>
                     <div class="flex justify-between"><span>Serviço Dia:</span><b id="vdServDia" class="text-red-500">0,00</b></div>
 <div class="flex justify-between"><span>Serviço Noite:</span><b id="vdServNoite" class="text-red-500">0,00</b></div>
-                    <div class="flex justify-between"><span>Entradas/Desc:</span><b id="vdDescTot" class="text-red-500">0,00</b></div>
+                    <div class="flex justify-between"><span>DESCONTOS:</span><b id="vdDescTot" class="text-red-500">0,00</b></div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t">
                         <input type="number" id="inputDescDelivery" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Desc. Deliv.">
                         <input type="number" id="inputTaxaEntrega" class="bg-gray-50 p-1 border-b text-[10px]" placeholder="Taxa Entrega">
@@ -515,6 +515,7 @@
     if(document.getElementById('inputTotalDelivery')) document.getElementById('inputTotalDelivery').value = totalDelivery.toFixed(2);
     if(document.getElementById('inputTaxaEntrega')) document.getElementById('inputTaxaEntrega').value = totalTaxa.toFixed(2);
     if(document.getElementById('inputCouvert')) document.getElementById('inputCouvert').value = totalCouvert.toFixed(2);
+	if(document.getElementById('inputDescDelivery')) document.getElementById('inputDescDelivery').value = totalDescDeliv.toFixed(2);
 
     // Cálculo do Líquido Final
     const faturamento = itensDia + itensNoite + totalDelivery;
