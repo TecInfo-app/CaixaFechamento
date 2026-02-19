@@ -410,29 +410,85 @@
         }
 
         function gerarLayoutRelatorio(dados) {
-            const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo);
-            const soma = (lista) => lista.reduce((a,b) => a + b.valor, 0);
-            const tItens = dados.vendas.reduce((a,b) => a + b.itens, 0);
-            const tServico = dados.vendas.reduce((a,b) => a + b.servico, 0);
-            
-            let html = `<div style="text-align:center; font-weight:900; font-size:16px;">${dados.loja}</div>
-                <div style="text-align:center; font-weight:bold;">RELATÓRIO DE FECHAMENTO</div>
-                <hr>
-                <p><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
-                <p><b>OPERADOR: ${dados.operador || '---'}</b></p>
-                <hr>
-                <p><b>TOTAL DE ITENS: R$ ${tItens.toFixed(2)}</b></p>
-                <p><b>VENDA SERVIÇO: R$ ${tServico.toFixed(2)}</b></p>
-                <hr>
-                <p><b>(-) CONSUMO/DESCONTOS</b></p>`;
-            filtrar('entrada').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
-            html += `<hr><p><b>(+) DINHEIRO/AJUSTE/GETNET</b></p>`;
-            filtrar('saida').forEach(l => html += `<p><b>${l.descricao}: R$ ${l.valor.toFixed(2)}</b></p>`);
-            html += `<br><br><div style="text-align:center; font-weight:bold;">Assinatura: _________________</div>`;
-            document.getElementById('areaImpressao').innerHTML = html;
-            window.print();
-        }
+    const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo && l.turno === dados.turno);
+    const soma = (lista) => lista.reduce((a, b) => a + b.valor, 0);
+    const tItens = dados.vendas.reduce((a, b) => a + b.itens, 0);
+    const tServico = dados.vendas.reduce((a, b) => a + b.servico, 0);
 
+    const listaPendentes = filtrar('pendente');
+    const totalPendentes = soma(listaPendentes);
+
+    const listaConsumo = filtrar('entrada');
+    const totalConsumo = soma(listaConsumo);
+
+    const listaAjustes = filtrar('saida');
+    const totalAjustes = soma(listaAjustes);
+
+    // Captura os valores para o cálculo da diferença
+    const saldoInicial = parseFloat(document.getElementById('exibeSaldoIni')?.innerText.replace('R$', '').replace(',', '.').trim()) || 0;
+    const gavetaFinalTexto = document.getElementById('vdTotalFinal')?.innerText.replace('R$', '').replace(',', '.').trim() || "0.00";
+    const gavetaFinalValor = parseFloat(gavetaFinalTexto) || 0;
+
+    // Cálculo da Diferença
+    const volLiq = (totalConsumo + totalAjustes + totalPendentes + gavetaFinalValor) - saldoInicial;
+    const diferenca = volLiq - tItens;
+
+    let html = `
+        <div style="text-align:center; font-weight:900; font-size:22px;">${dados.loja}</div>
+        <div style="text-align:center; font-weight:bold; font-size:18px;">RELATÓRIO DE FECHAMENTO</div>
+        <hr>
+        <p style="font-size:16px;"><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
+        <hr>
+        
+        <p style="font-size:18px;"><b>SALDO INICIAL: R$ ${saldoInicial.toFixed(2)}</b></p>
+        <hr>
+        <br>
+
+        <p>TOTAL ITENS: R$ ${tItens.toFixed(2)}</p>
+        <br>
+        
+        <p>SERV. TURNO: R$ ${tServico.toFixed(2)}</p>
+        <hr>
+        <br>
+        
+        <p style="font-weight:bold;">🗓️ CONSUMO/DESCONTOS</p>`;
+    
+    listaConsumo.forEach(l => {
+        html += `<p style="font-size:14px;">${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`;
+    });
+    html += `<p style="text-align:right;"><b>TOTAL: R$ ${totalConsumo.toFixed(2)}</b></p><br>`;
+
+    html += `<hr><p style="font-weight:bold;">💰 DINHEIRO/AJUSTE/GETNET</p>`;
+    listaAjustes.forEach(l => {
+        html += `<p style="font-size:14px;">${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`;
+    });
+    html += `<p style="text-align:right;"><b>TOTAL: R$ ${totalAjustes.toFixed(2)}</b></p><br>`;
+
+    if(totalPendentes > 0) {
+        html += `<hr><p style="font-weight:bold;">⏳ PENDENTES DO DIA</p>`;
+        listaPendentes.forEach(p => {
+            html += `<p style="font-size:14px;">${p.descricao}: R$ ${p.valor.toFixed(2)}</p>`;
+        });
+        html += `<p style="text-align:right;"><b>TOTAL PENDENTES: R$ ${totalPendentes.toFixed(2)}</b></p><br>`;
+    }
+
+    // EXIBE APENAS A DIFERENÇA (GAVETA FINAL FOI REMOVIDA DAQUI)
+    html += `
+        <hr style="border-top: 2px solid #000;">
+        <div style="text-align:right; font-size:24px; color: ${diferenca < 0 ? 'red' : 'black'};">
+            <b>DIFERENÇA: R$ ${diferenca.toFixed(2)}</b>
+        </div>
+        
+        <br><br><br>
+        <div style="text-align:center; font-weight:bold; font-size:16px;">
+            __________________________<br>
+            Assinatura Responsável
+        </div>
+        <br><br>`;
+
+    document.getElementById('areaImpressao').innerHTML = html;
+    window.print();
+}
         window.abrirHistorico = function() {
             const lista = [...db.historicoFechamentos].slice(-10).reverse();
             if(lista.length === 0) return alert("Vazio.");
