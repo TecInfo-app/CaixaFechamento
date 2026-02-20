@@ -412,26 +412,24 @@
         function gerarLayoutRelatorio(dados) {
     const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo && l.turno === dados.turno);
     const soma = (lista) => lista.reduce((a, b) => a + b.valor, 0);
+    
+    // 1. Valor total de venda itens e serviço
     const tItens = dados.vendas.reduce((a, b) => a + b.itens, 0);
     const tServico = dados.vendas.reduce((a, b) => a + b.servico, 0);
 
     const listaPendentes = filtrar('pendente');
     const totalPendentes = soma(listaPendentes);
-
     const listaConsumo = filtrar('entrada');
     const totalConsumo = soma(listaConsumo);
-
     const listaAjustes = filtrar('saida');
     const totalAjustes = soma(listaAjustes);
 
-    // Captura os valores para o cálculo da diferença
-    const saldoInicial = parseFloat(document.getElementById('exibeSaldoIni')?.innerText.replace('R$', '').replace(',', '.').trim()) || 0;
-    const gavetaFinalTexto = document.getElementById('vdTotalFinal')?.innerText.replace('R$', '').replace(',', '.').trim() || "0.00";
-    const gavetaFinalValor = parseFloat(gavetaFinalTexto) || 0;
+    // 2. Captura o Volume Líquido (Saldo Atual) do painel azul para o cálculo
+    const volLiquidoTexto = document.getElementById('exibeSaldoAtual')?.innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim() || "0.00";
+    const volLiquidoValor = parseFloat(volLiquidoTexto) || 0;
 
-    // Cálculo da Diferença
-    const volLiq = (totalConsumo + totalAjustes + totalPendentes + gavetaFinalValor) - saldoInicial;
-    const diferenca = volLiq - tItens;
+    // 3. CÁLCULO DA DIFERENÇA: (Venda Itens - Volume Líquido)
+    const diferencaFinal = tItens - volLiquidoValor;
 
     let html = `
         <div style="text-align:center; font-weight:900; font-size:22px;">${dados.loja}</div>
@@ -440,7 +438,7 @@
         <p style="font-size:16px;"><b>DATA: ${dados.data} | TURNO: ${dados.turno}</b></p>
         <hr>
         
-        <p style="font-size:18px;"><b>SALDO INICIAL: R$ ${saldoInicial.toFixed(2)}</b></p>
+        <p style="font-size:18px;"><b>SALDO INICIAL: R$ ${document.getElementById('exibeSaldoIni')?.innerText.replace('R$', '').trim()}</b></p>
         <hr>
         <br>
 
@@ -454,29 +452,29 @@
         <p style="font-weight:bold;">🗓️ CONSUMO/DESCONTOS</p>`;
     
     listaConsumo.forEach(l => {
-        html += `<p style="font-size:14px;">${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`;
+        html += `<p style="font-size:16px;">${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`;
     });
     html += `<p style="text-align:right;"><b>TOTAL: R$ ${totalConsumo.toFixed(2)}</b></p><br>`;
 
-    html += `<hr><p style="font-weight:bold;">💰 DINHEIRO/AJUSTE/GETNET</p>`;
+    html += `<hr><p style="font-weight:bold;">💰  DINHEIRO/AJUSTE/GETNET</p>`;
     listaAjustes.forEach(l => {
-        html += `<p style="font-size:14px;">${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`;
+        html += `<p style="font-size:16px;">${l.descricao}: R$ ${l.valor.toFixed(2)}</p>`;
     });
     html += `<p style="text-align:right;"><b>TOTAL: R$ ${totalAjustes.toFixed(2)}</b></p><br>`;
 
     if(totalPendentes > 0) {
         html += `<hr><p style="font-weight:bold;">⏳ PENDENTES DO DIA</p>`;
         listaPendentes.forEach(p => {
-            html += `<p style="font-size:14px;">${p.descricao}: R$ ${p.valor.toFixed(2)}</p>`;
+            html += `<p style="font-size:16px;">${p.descricao}: R$ ${p.valor.toFixed(2)}</p>`;
         });
         html += `<p style="text-align:right;"><b>TOTAL PENDENTES: R$ ${totalPendentes.toFixed(2)}</b></p><br>`;
     }
 
-    // EXIBE APENAS A DIFERENÇA (GAVETA FINAL FOI REMOVIDA DAQUI)
+    // EXIBE APENAS A DIFERENÇA FINAL
     html += `
         <hr style="border-top: 2px solid #000;">
-        <div style="text-align:right; font-size:24px; color: ${diferenca < 0 ? 'red' : 'black'};">
-            <b>DIFERENÇA: R$ ${diferenca.toFixed(2)}</b>
+        <div style="text-align:right; font-size:18px;">
+            <b>DIFERENÇA: R$ ${diferencaFinal.toFixed(2)}</b>
         </div>
         
         <br><br><br>
