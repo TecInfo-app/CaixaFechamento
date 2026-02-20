@@ -395,20 +395,33 @@
         }
 
         window.imprimirCupomItem = function(id) {
-            const item = db.lancamentos.find(l => l.id === id);
-            if(!item) return;
-            document.getElementById('areaImpressao').innerHTML = `
-                <div style="text-align:center; font-weight:900; font-size:16px;">${item.loja}</div>
-                <div style="text-align:center; margin-bottom:10px; font-weight:bold;">CUPOM DE LANÇAMENTO</div>
-                <hr>
-                <p><b>DATA: ${item.data} | TURNO: ${item.turno}</b></p>
-                <p><b>TIPO: ${item.tipo.toUpperCase()}</b></p>
-                <p><b>DESC: ${item.descricao}</b></p>
-                <hr>
-                <div style="text-align:right; font-size:18px;"><b>VALOR: R$ ${item.valor.toFixed(2)}</b></div>`;
-            window.print();
-        }
+    const item = db.lancamentos.find(l => l.id === id);
+    if(!item) return;
 
+    document.getElementById('areaImpressao').innerHTML = `
+        <div style="text-align:center; font-weight:900; font-size:18px;">${item.loja}</div>
+        <div style="text-align:center; margin-bottom:10px; font-weight:bold; font-size:16px;">LANÇAMENTOS</div>
+        <hr style="border-top: 1px dashed #000;">
+        
+        <p style="margin: 8px 0;"><b>DATA:</b> ${item.data}</p>
+        <p style="margin: 8px 0;"><b>TURNO:</b> ${item.turno}</p>
+        <p style="margin: 8px 0;"><b>TIPO:</b> ${item.tipo.toUpperCase()}</p>
+        <p style="margin: 8px 0;"><b>DESCRIÇÃO:</b> ${item.descricao}</p>
+        
+        <hr style="border-top: 1px dashed #000;">
+        <div style="text-align:right; font-size:18px; margin-top:10px;">
+            <b>VALOR: R$ ${item.valor.toFixed(2)}</b>
+        </div>
+        
+        <br><br><br>
+        <div style="text-align:center; font-size:10px;">
+            _________________________________<br>
+            Responsável / Assinatura
+        </div>
+        <br>
+    `;
+    window.print();
+}
         function gerarLayoutRelatorio(dados) {
     const filtrar = (tipo) => dados.lancamentos.filter(l => l.tipo === tipo && l.turno === dados.turno);
     const soma = (lista) => lista.reduce((a, b) => a + b.valor, 0);
@@ -634,6 +647,7 @@ if(document.getElementById('vdTotalFinal')) {
     </script>
 </body>
 </html>
+
 
 
 
