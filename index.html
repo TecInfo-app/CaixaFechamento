@@ -34,10 +34,14 @@
     <div class="max-w-6xl mx-auto no-print">
         <div class="bg-gray-900 text-white p-4 rounded-t-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-lg">
             <div>
-                <label class="text-[10px] text-gray-400 uppercase font-bold">Loja Atual</label>
-                <input type="text" id="configLoja" onchange="trocarContexto()" class="w-full bg-transparent border-b border-yellow-500 outline-none font-bold text-yellow-500" value="Loja Matriz">
-            </div>
-            <div>
+    <label class="text-[10px] text-gray-400 uppercase font-bold">Loja Atual</label>
+    <div class="flex gap-1">
+        <select id="configLoja" onchange="trocarContexto(); salvarSessao();" class="w-full bg-transparent border-b border-yellow-500 outline-none font-bold text-yellow-500 bg-gray-900">
+            </select>
+        <button onclick="adicionarNovaLoja()" class="text-green-500 font-bold px-1">+</button>
+        <button onclick="removerLojaAtual()" class="text-red-500 font-bold px-1">✕</button>
+    </div>
+</div>
                 <label class="text-[10px] text-gray-400 uppercase font-bold">Operador</label>
                 <input type="text" id="configOperador" onchange="salvarSessao()" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold" value="Operador">
             </div>
@@ -47,7 +51,7 @@
             </div>
             <div>
                 <label class="text-[10px] text-gray-400 uppercase font-bold">Turno</label>
-                <select id="configTurno" onchange="salvarSessao(); calcularPainel();" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold text-white">
+                <select id="configTurno" onchange="salvarSessao(); calcularPainel();" class="w-full bg-transparent border-b border-gray-700 outline-none font-bold text-black">
                     <option value="Dia" class="text-black">🌞 Turno Dia</option>
                     <option value="Noite" class="text-black">🌚 Turno Noite</option>
 					<select id="filtroLojaVendaDia" onchange="renderizarAcumuladoDia()" class="w-full bg-gray-100 p-2 rounded border font-bold text-xs outline-none">
@@ -217,9 +221,13 @@
         let somaTemporaria = 0, contagemTemporaria = 0, tipoAtual = '';
 
         window.onload = () => {
+		
+		gerenciarLojas(); // <-- ADICIONE ESTA LINHA AQUI
     const hoje = new Date().toISOString().split('T')[0];
     document.getElementById('configData').value = hoje;
-    
+    localStorage.setItem('ultimaLojaSelecionada', loja); // <-- ADICIONE ESTA LINHA
+	
+	
     // Verifique se os novos IDs existem antes de atribuir
     if(document.getElementById('filtroDataInicio')) document.getElementById('filtroDataInicio').value = hoje;
     if(document.getElementById('filtroDataFim')) document.getElementById('filtroDataFim').value = hoje;
@@ -300,6 +308,52 @@
                 lista.appendChild(li);
             });
         }
+		
+		// --- LÓGICA DE GERENCIAMENTO DE LOJAS ---
+const lojasIniciais = ["Loja Matriz", "Loja Filial 01"];
+
+function gerenciarLojas() {
+    const seletor = document.getElementById('configLoja');
+    if (!seletor) return;
+    
+    // Busca no navegador as lojas salvas
+    const lojas = JSON.parse(localStorage.getItem('minhasLojas')) || lojasIniciais;
+    
+    seletor.innerHTML = ""; 
+    lojas.forEach(loja => {
+        let opt = document.createElement('option');
+        opt.value = loja;
+        opt.text = loja;
+        seletor.appendChild(opt);
+    });
+
+    // Mantém a última loja selecionada
+    const ultima = localStorage.getItem('ultimaLojaSelecionada');
+    if (ultima) seletor.value = ultima;
+}
+
+window.adicionarNovaLoja = function() {
+    const nome = prompt("Digite o nome da nova unidade:");
+    if (nome && nome.trim() !== "") {
+        let lojas = JSON.parse(localStorage.getItem('minhasLojas')) || lojasIniciais;
+        lojas.push(nome.trim());
+        localStorage.setItem('minhasLojas', JSON.stringify(lojas));
+        gerenciarLojas();
+        alert("Loja adicionada com sucesso!");
+    }
+}
+
+window.removerLojaAtual = function() {
+    const seletor = document.getElementById('configLoja');
+    if (confirm(`Deseja excluir a unidade "${seletor.value}" da lista?`)) {
+        let lojas = JSON.parse(localStorage.getItem('minhasLojas')) || lojasIniciais;
+        lojas = lojas.filter(l => l !== seletor.value);
+        localStorage.setItem('minhasLojas', JSON.stringify(lojas));
+        gerenciarLojas();
+        trocarContexto();
+    }
+}
+// ---------------------------------------
 
         window.confirmarLancamentos = async function() {
             const idEdicao = document.getElementById('editId').value;
@@ -399,22 +453,22 @@
     if(!item) return;
 
     document.getElementById('areaImpressao').innerHTML = `
-        <div style="text-align:center; font-weight:900; font-size:18px;">${item.loja}</div>
+        <div style="text-align:center; font-weight:900; font-size:20px;">${item.loja}</div>
         <div style="text-align:center; margin-bottom:10px; font-weight:bold; font-size:16px;">LANÇAMENTOS</div>
-        <hr style="border-top: 1px dashed #000;">
+        <hr style="border-top: 2px dashed #000;">
         
-        <p style="margin: 8px 0;"><b>DATA:</b> ${item.data}</p>
-        <p style="margin: 8px 0;"><b>TURNO:</b> ${item.turno}</p>
-        <p style="margin: 8px 0;"><b>TIPO:</b> ${item.tipo.toUpperCase()}</p>
-        <p style="margin: 8px 0;"><b>DESCRIÇÃO:</b> ${item.descricao}</p>
+        <p style="margin: 10px 0;"><b>DATA:</b> ${item.data}</p>
+        <p style="margin: 10px 0;"><b>TURNO:</b> ${item.turno}</p>
+        <p style="margin: 10px 0;"><b>TIPO:</b> ${item.tipo.toUpperCase()}</p>
+        <p style="margin: 10px 0;"><b>DESCRIÇÃO:</b> ${item.descricao}</p>
         
         <hr style="border-top: 1px dashed #000;">
         <div style="text-align:right; font-size:18px; margin-top:10px;">
             <b>VALOR: R$ ${item.valor.toFixed(2)}</b>
         </div>
         
-        <br><br><br>
-        <div style="text-align:center; font-size:10px;">
+        <br><br><br><br><br>
+        <div style="text-align:center; font-size:12px;">
             _________________________________<br>
             Responsável / Assinatura
         </div>
@@ -439,12 +493,11 @@
     const totalAjustes = soma(filtrar('saida'));
     const totalPendentes = soma(filtrar('pendente'));
 
-    // 2. CÁLCULO DO VOLUME LÍQUIDO (Matemática pura do sistema)
-    // Líquido = Inicial + Entradas (Consumos/Descontos) + Saídas (Dinheiro/Ajustes) + Pendentes
+    // 2. CÁLCULO DO VOLUME LÍQUIDO
     const vLiquido = saldoInicial + totalConsumo + totalAjustes + totalPendentes;
 
-    // 3. CÁLCULO DA DIFERENÇA (Pedido por você: Itens - Líquido)
-    const diferencaFinal = vItens - vLiquido;
+    // 3. MODIFICAÇÃO SOLICITADA: CÁLCULO DA DIFERENÇA (Líquido - Itens)
+    const diferencaFinal = vLiquido - vItens;
 
     let html = `
         <div style="text-align:center; font-weight:900; font-size:20px;">${dados.loja}</div>
@@ -496,7 +549,11 @@
         <br>`;
 
     document.getElementById('areaImpressao').innerHTML = html;
-    window.print();
+    
+    // Pequeno timeout para garantir a renderização antes de imprimir
+    setTimeout(() => {
+        window.print();
+    }, 300);
 }
         window.abrirHistorico = function() {
             const lista = [...db.historicoFechamentos].slice(-10).reverse();
