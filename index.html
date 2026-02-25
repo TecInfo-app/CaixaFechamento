@@ -376,8 +376,14 @@
             if(!caixaTurno.aberto) return alert("Abra o caixa!");
             const s = prompt("Serviço:"); const i = prompt("Itens:");
             if(s !== null && i !== null) {
-                const v = { servico: parseFloat(s)||0, itens: parseFloat(i)||0, turno: document.getElementById('configTurno').value, data: document.getElementById('configData').value, loja: document.getElementById('configLoja').value, id: Date.now() };
-                caixaTurno.vendas.push(v); db.vendas.push(v); 
+const v = { 
+    servico: parseFloat(s.toString().replace(',', '.')) || 0, 
+    itens: parseFloat(i.toString().replace(',', '.')) || 0, 
+    turno: document.getElementById('configTurno').value, 
+    data: document.getElementById('configData').value, 
+    loja: document.getElementById('configLoja').value, 
+    id: Date.now() 
+};                caixaTurno.vendas.push(v); db.vendas.push(v); 
                 await salvarSessao(); calcularPainel();
             }
         }
@@ -648,7 +654,6 @@ if(document.getElementById('vdTotalFinal')) {
     </script>
 </body>
 </html>
-
 
 
 
