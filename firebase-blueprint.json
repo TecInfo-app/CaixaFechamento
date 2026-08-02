@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "Venda": {
+      "title": "Venda",
+      "description": "Log of a sale transaction.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number", "description": "Unique timestamp id" },
+        "servico": { "type": "number", "description": "Service charge amount" },
+        "itens": { "type": "number", "description": "Items total revenue" },
+        "turno": { "type": "string", "enum": ["Dia", "Noite"], "description": "Shift name" },
+        "data": { "type": "string", "description": "ISO date string (YYYY-MM-DD)" },
+        "loja": { "type": "string", "description": "Store name identifier" }
+      },
+      "required": ["id", "servico", "itens", "turno", "data", "loja"]
+    },
+    "Lancamento": {
+      "title": "Lancamento",
+      "description": "Ledger entry for deposits, cash payouts, or pending tab accounts.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number", "description": "Unique timestamp id" },
+        "valor": { "type": "number", "description": "Entry amount" },
+        "descricao": { "type": "string", "description": "Reason or description" },
+        "tipo": { "type": "string", "enum": ["entrada", "saida", "pendente"], "description": "Classification of entry" },
+        "turno": { "type": "string", "enum": ["Dia", "Noite"], "description": "Shift name" },
+        "data": { "type": "string", "description": "ISO date string" },
+        "loja": { "type": "string", "description": "Store name identifier" },
+        "pagamentos": { "type": "array", "description": "Installments paid for the pending entry" }
+      },
+      "required": ["id", "valor", "descricao", "tipo", "turno", "data", "loja"]
+    },
+    "DadosManuaisDay": {
+      "title": "DadosManuaisDay",
+      "description": "Manual operational metrics for a given date.",
+      "type": "object",
+      "properties": {
+        "delivery": { "type": "number" },
+        "taxaEntrega": { "type": "number" },
+        "couvert": { "type": "number" },
+        "descDelivery": { "type": "number" }
+      },
+      "required": ["delivery", "taxaEntrega", "couvert", "descDelivery"]
+    },
+    "Fechamento": {
+      "title": "Fechamento",
+      "description": "Historical closure report.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "loja": { "type": "string" },
+        "operador": { "type": "string" },
+        "data": { "type": "string" },
+        "turno": { "type": "string", "enum": ["Dia", "Noite"] },
+        "saldoInicial": { "type": "number" },
+        "saldoFinal": { "type": "number" },
+        "lancamentos": { "type": "array" },
+        "vendas": { "type": "array" },
+        "dataHora": { "type": "string" }
+      },
+      "required": ["id", "loja", "operador", "data", "turno", "saldoInicial", "saldoFinal", "lancamentos", "vendas", "dataHora"]
+    },
+    "LojasConfig": {
+      "title": "LojasConfig",
+      "description": "Custom configuration holding lists of stores and operators.",
+      "type": "object",
+      "properties": {
+        "lojas": { "type": "array" },
+        "operadores": { "type": "array" }
+      },
+      "required": ["lojas", "operadores"]
+    },
+    "CaixaTurno": {
+      "title": "CaixaTurno",
+      "description": "The current cashier state or shift session.",
+      "type": "object",
+      "properties": {
+        "lancamentos": { "type": "array" },
+        "vendas": { "type": "array" },
+        "saldoInicial": { "type": "number" },
+        "aberto": { "type": "boolean" }
+      },
+      "required": ["lancamentos", "vendas", "saldoInicial", "aberto"]
+    }
+  },
+  "firestore": {
+    "/vendas/{vendaId}": {
+      "schema": "Venda",
+      "description": "Collection of all sales."
+    },
+    "/lancamentos/{lancamentoId}": {
+      "schema": "Lancamento",
+      "description": "Collection of all cashier entries (inflows, outflows, pending)."
+    },
+    "/dados_manuais/{dataId}": {
+      "schema": "DadosManuaisDay",
+      "description": "Collection of manual day operational metrics."
+    },
+    "/historico_fechamentos/{fechamentoId}": {
+      "schema": "Fechamento",
+      "description": "Collection of finalized cashier shift receipts."
+    },
+    "/lojas_config/{lojaId}": {
+      "schema": "LojasConfig",
+      "description": "Available stores and registered operators settings."
+    },
+    "/caixa_session/{sessionId}": {
+      "schema": "CaixaTurno",
+      "description": "Individual store shift session state per store and date."
+    }
+  }
+}

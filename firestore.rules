@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /lojas_config/{lojaId} {
+      allow read, write: if true;
+    }
+
+    match /vendas/{vendaId} {
+      allow read, write: if true;
+    }
+
+    match /lancamentos/{lancamentoId} {
+      allow read, write: if true;
+    }
+
+    match /dados_manuais/{dataId} {
+      allow read, write: if true;
+    }
+
+    match /historico_fechamentos/{fechamentoId} {
+      allow read, write: if true;
+    }
+
+    match /caixa_session/{sessionId} {
+      allow read, write: if true;
+    }
+  }
+}

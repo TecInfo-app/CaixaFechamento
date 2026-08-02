@@ -1,0 +1,6 @@
+{
+  "name": "Terminal de Caixa",
+  "description": "Terminal de Caixa para controle ágil de vendas, faturamento e fechamento de turnos com relatórios e impressão de comprovantes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
