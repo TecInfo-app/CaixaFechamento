@@ -201,7 +201,8 @@ export default function App() {
 
   // Initialize dates, test Firestore connection and register real-time listeners on mount
   useEffect(() => {
-    const hoje = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const hoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     setData(hoje);
 
     // Load Local DB from LocalStorage
