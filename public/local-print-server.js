@@ -86,31 +86,50 @@ app.post("/print", (req, res) => {
 
   console.log(`[${new Date().toLocaleTimeString()}] Nova solicitação de impressão recebida para: ${printerName || "Impressora Padrão"}`);
 
-  // Criar arquivo HTML temporário no diretório temporário do sistema operacional
-  const tempHtmlPath = path.join(os.tmpdir(), "temp-print.html");
-  fs.writeFileSync(tempHtmlPath, html, "utf8");
-
   const isWindows = process.platform === "win32";
   const isMac = process.platform === "darwin";
   const isLinux = process.platform === "linux";
 
   if (isWindows) {
-    // No Windows, usa PowerShell para imprimir de forma silenciosa.
-    // Como o verbo 'PrintTo' não é registrado por padrão para arquivos HTML no Windows,
-    // nós mudamos temporariamente a impressora padrão do sistema para a selecionada,
-    // mandamos imprimir usando o verbo padrão 'Print' (que funciona com qualquer navegador do sistema),
-    // esperamos 3 segundos e então restauramos a impressora padrão anterior.
-    // Isso é extremamente robusto, compatível e não gera erros 500 no Windows!
-    let command;
-    if (printerName) {
-      command = `powershell -Command "$oldDefault = ''; try { $oldDefault = (Get-CimInstance Win32_Printer -Filter 'Default = true').Name } catch { try { $oldDefault = (Get-WmiObject Win32_Printer -Filter 'Default = true').Name } catch {} }; (New-Object -ComObject WScript.Network).SetDefaultPrinter('${printerName}'); Start-Process -FilePath '${tempHtmlPath}' -Verb Print; Start-Sleep -Seconds 3; if ($oldDefault) { (New-Object -ComObject WScript.Network).SetDefaultPrinter($oldDefault) }"`;
+    // Injetar script para auto-imprimir e auto-fechar a aba no Microsoft Edge silenciosamente
+    const printScript = `
+<script>
+  window.onload = function() {
+    window.print();
+    setTimeout(function() {
+      window.close();
+    }, 1500);
+  };
+</script>
+`;
+    let finalHtml = html;
+    if (finalHtml.includes("</body>")) {
+      finalHtml = finalHtml.replace("</body>", `${printScript}</body>`);
     } else {
-      command = `powershell -Command "Start-Process -FilePath '${tempHtmlPath}' -Verb Print"`;
+      finalHtml = finalHtml + printScript;
+    }
+
+    // Criar arquivo HTML temporário no diretório temporário do sistema operacional
+    const tempHtmlPath = path.join(os.tmpdir(), "temp-print.html");
+    fs.writeFileSync(tempHtmlPath, finalHtml, "utf8");
+
+    // No Windows, usamos o Microsoft Edge em modo de quiosque silencioso (--kiosk-printing)
+    // para enviar a impressão sem janelas de visualização.
+    // Mudamos temporariamente a impressora padrão se o usuário selecionou uma.
+    const escapedPrinterName = printerName ? printerName.replace(/'/g, "''") : "";
+    const edgeProfileDir = path.join(os.tmpdir(), "edge-print-profile").replace(/\\/g, "\\\\");
+    const cleanTempHtmlPath = tempHtmlPath.replace(/\\/g, "\\\\");
+
+    let command;
+    if (escapedPrinterName) {
+      command = `powershell -Command "$oldDefault = ''; try { $oldDefault = (Get-CimInstance Win32_Printer -Filter 'Default = true').Name } catch { try { $oldDefault = (Get-WmiObject Win32_Printer -Filter 'Default = true').Name } catch {} }; (New-Object -ComObject WScript.Network).SetDefaultPrinter('${escapedPrinterName}'); Start-Process 'msedge.exe' -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', '--user-data-dir=\\"${edgeProfileDir}\\"', '\\"${cleanTempHtmlPath}\\"' -WindowStyle Hidden; Start-Sleep -Seconds 4; if ($oldDefault) { (New-Object -ComObject WScript.Network).SetDefaultPrinter($oldDefault) }"`;
+    } else {
+      command = `powershell -Command "Start-Process 'msedge.exe' -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', '--user-data-dir=\\"${edgeProfileDir}\\"', '\\"${cleanTempHtmlPath}\\"' -WindowStyle Hidden"`;
     }
     
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error("Erro ao imprimir via PowerShell:", error);
+        console.error("Erro ao imprimir via PowerShell/Edge:", error);
         return res.status(500).json({ success: false, error: error.message });
       }
       res.json({ success: true, message: `Enviado para a fila de impressão [${printerName || "Padrão"}] do Windows!` });

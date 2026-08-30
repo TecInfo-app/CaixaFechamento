@@ -21,6 +21,7 @@ export interface Lancamento {
   data: string;
   loja: string;
   pagamentos?: PagamentoPendente[];
+  observacao?: string;
 }
 
 export interface Venda {

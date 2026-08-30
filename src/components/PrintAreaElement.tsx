@@ -67,6 +67,7 @@ export default function PrintAreaElement({
             <p><b>TURNO:</b> {activeItem.turno}</p>
             <p><b>CATEGORIA:</b> {activeItem.tipo.toUpperCase()}</p>
             <p className="whitespace-pre-wrap"><b>DESC:</b> {activeItem.descricao}</p>
+            {activeItem.observacao && <p className="whitespace-pre-wrap"><b>OBS:</b> {activeItem.observacao}</p>}
           </div>
           <hr className="border-t border-dashed border-black my-3" />
           <div className="text-right text-lg font-black font-mono">
@@ -115,10 +116,10 @@ export default function PrintAreaElement({
               <span>R$ {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'entrada').reduce((sum, l) => sum + (l?.valor ?? 0), 0).toFixed(2)}</span>
             </div>
             {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'entrada').length > 0 && (
-              <div className="pl-3 pr-1 py-0.5 text-[11px] text-slate-705 font-mono border-l border-dashed border-slate-350 space-y-0.5 my-1">
+              <div className="pl-3 pr-1 py-0.5 text-[11px] text-slate-750 font-mono border-l border-dashed border-slate-350 space-y-0.5 my-1">
                 {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'entrada').map((l) => (
                   <div key={l?.id} className="flex justify-between">
-                    <span className="truncate max-w-[160px]">- {l?.descricao || 'Sem descrição'}</span>
+                    <span className="truncate max-w-[160px]">- {l?.descricao || 'Sem descrição'}{l?.observacao ? ` (${l.observacao})` : ''}</span>
                     <span>R$ {(l?.valor ?? 0).toFixed(2)}</span>
                   </div>
                 ))}
@@ -129,10 +130,10 @@ export default function PrintAreaElement({
               <span>R$ {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'saida').reduce((sum, l) => sum + (l?.valor ?? 0), 0).toFixed(2)}</span>
             </div>
             {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'saida').length > 0 && (
-              <div className="pl-3 pr-1 py-0.5 text-[11px] text-slate-705 font-mono border-l border-dashed border-slate-350 space-y-0.5 my-1">
+              <div className="pl-3 pr-1 py-0.5 text-[11px] text-slate-750 font-mono border-l border-dashed border-slate-350 space-y-0.5 my-1">
                 {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'saida').map((l) => (
                   <div key={l?.id} className="flex justify-between">
-                    <span className="truncate max-w-[160px]">- {l?.descricao || 'Sem descrição'}</span>
+                    <span className="truncate max-w-[160px]">- {l?.descricao || 'Sem descrição'}{l?.observacao ? ` (${l.observacao})` : ''}</span>
                     <span>R$ {(l?.valor ?? 0).toFixed(2)}</span>
                   </div>
                 ))}
@@ -143,10 +144,10 @@ export default function PrintAreaElement({
               <span>R$ {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'pendente').reduce((sum, l) => sum + (l?.valor ?? 0), 0).toFixed(2)}</span>
             </div>
             {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'pendente').length > 0 && (
-              <div className="pl-3 pr-1 py-0.5 text-[11px] text-slate-705 font-mono border-l border-dashed border-slate-350 space-y-0.5 my-1">
+              <div className="pl-3 pr-1 py-0.5 text-[11px] text-slate-750 font-mono border-l border-dashed border-slate-350 space-y-0.5 my-1">
                 {(activeFechamento.lancamentos || []).filter(l => l && l.tipo === 'pendente').map((l) => (
                   <div key={l?.id} className="flex justify-between">
-                    <span className="truncate max-w-[160px]">- {l?.descricao || 'Sem descrição'}</span>
+                    <span className="truncate max-w-[160px]">- {l?.descricao || 'Sem descrição'}{l?.observacao ? ` (${l.observacao})` : ''}</span>
                     <span>R$ {(l?.valor ?? 0).toFixed(2)}</span>
                   </div>
                 ))}

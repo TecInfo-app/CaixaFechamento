@@ -572,19 +572,20 @@ export default function App() {
     id: number | null,
     descricao: string,
     valor: number,
-    tipo: LancamentoType
+    tipo: LancamentoType,
+    observacao?: string
   ) => {
     if (id) {
       // --- UPDATE EXISTING ENTRY ---
       // Update in LocalDB
       const updatedLancamentos = localDB.lancamentos.map((l) =>
-        l.id === id ? { ...l, descricao, valor, tipo } : l
+        l.id === id ? { ...l, descricao, valor, tipo, observacao } : l
       );
       saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
 
       // Update in active session
       const updatedSessionLancamentos = caixaTurno.lancamentos.map((l) =>
-        l.id === id ? { ...l, descricao, valor, tipo } : l
+        l.id === id ? { ...l, descricao, valor, tipo, observacao } : l
       );
       saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
     } else {
@@ -596,7 +597,8 @@ export default function App() {
         tipo,
         turno,
         data,
-        loja
+        loja,
+        observacao
       };
 
       const updatedLancamentos = [...localDB.lancamentos, newLancamento];
@@ -1604,6 +1606,11 @@ export default function App() {
                             <span className="font-mono font-bold text-on-surface text-xs md:text-sm">
                               R$ {l.valor.toFixed(2)}
                             </span>
+                            {l.observacao && (
+                              <span className="text-[10px] text-slate-500 italic block mt-1 font-sans">
+                                Obs: {l.observacao}
+                              </span>
+                            )}
                           </div>
                           <div className="flex gap-1 shrink-0">
                             <button
@@ -1662,6 +1669,11 @@ export default function App() {
                             <span className="font-mono font-bold text-on-surface text-xs md:text-sm">
                               R$ {l.valor.toFixed(2)}
                             </span>
+                            {l.observacao && (
+                              <span className="text-[10px] text-slate-500 italic block mt-1 font-sans">
+                                Obs: {l.observacao}
+                              </span>
+                            )}
                           </div>
                           <div className="flex gap-1 shrink-0">
                             <button
@@ -1720,6 +1732,11 @@ export default function App() {
                             <span className="font-mono font-bold text-on-surface text-xs md:text-sm">
                               R$ {l.valor.toFixed(2)}
                             </span>
+                            {l.observacao && (
+                              <span className="text-[10px] text-slate-500 italic block mt-1 font-sans">
+                                Obs: {l.observacao}
+                              </span>
+                            )}
                           </div>
                           <div className="flex gap-1 shrink-0">
                             <button
@@ -1866,7 +1883,7 @@ export default function App() {
                 .map((l) => l.descricao.trim())
             )
           ).sort() as string[]}
-          onPrint={(descricao, valor, tipo) => {
+          onPrint={(descricao, valor, tipo, observacao) => {
             const tempItem: Lancamento = {
               id: Date.now(),
               descricao,
@@ -1874,7 +1891,8 @@ export default function App() {
               tipo,
               turno,
               data,
-              loja
+              loja,
+              observacao
             };
             triggerMockPrint("item", tempItem, null, null);
           }}

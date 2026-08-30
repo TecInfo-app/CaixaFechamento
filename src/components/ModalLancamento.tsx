@@ -17,13 +17,14 @@ interface ModalLancamentoProps {
   onClose: () => void;
   tipo: LancamentoType | null;
   itemToEdit: Lancamento | null;
-  onSave: (id: number | null, descricao: string, valor: number, tipo: LancamentoType) => void;
-  onPrint?: (descricao: string, valor: number, tipo: LancamentoType) => void;
+  onSave: (id: number | null, descricao: string, valor: number, tipo: LancamentoType, observacao?: string) => void;
+  onPrint?: (descricao: string, valor: number, tipo: LancamentoType, observacao?: string) => void;
   existentesClientes?: string[];
 }
 
 export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onSave, onPrint, existentesClientes = [] }: ModalLancamentoProps) {
   const [descricao, setDescricao] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [adicoes, setAdicoes] = useState<Adicao[]>([]);
   const [origemCliente, setOrigemCliente] = useState<"salvo" | "novo">("salvo");
@@ -33,11 +34,13 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
     if (isOpen) {
       if (itemToEdit) {
         setDescricao(itemToEdit.descricao);
+        setObservacao(itemToEdit.observacao || "");
         setInputValue("");
         setAdicoes([{ id: "initial", valor: itemToEdit.valor }]);
         setOrigemCliente(existentesClientes.includes(itemToEdit.descricao) ? "salvo" : "novo");
       } else {
         setDescricao("");
+        setObservacao("");
         setInputValue("");
         setAdicoes([]);
         setOrigemCliente(existentesClientes.length > 0 ? "salvo" : "novo");
@@ -102,7 +105,7 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
     }
 
     const finalDesc = descricao.trim() || (tipo === 'entrada' ? 'Consumo' : tipo === 'saida' ? 'Retirada' : 'Pendente');
-    onSave(itemToEdit ? itemToEdit.id : null, finalDesc, finalValor, tipo);
+    onSave(itemToEdit ? itemToEdit.id : null, finalDesc, finalValor, tipo, observacao.trim() || undefined);
     onClose();
   };
 
@@ -119,11 +122,11 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
     const finalDesc = descricao.trim() || (tipo === 'entrada' ? 'Consumo' : tipo === 'saida' ? 'Retirada' : 'Pendente');
     
     // 1. Salva o lançamento no caixa/banco de dados primeiro
-    onSave(itemToEdit ? itemToEdit.id : null, finalDesc, finalValor, tipo);
+    onSave(itemToEdit ? itemToEdit.id : null, finalDesc, finalValor, tipo, observacao.trim() || undefined);
 
     // 2. Envia para a impressora
     if (onPrint) {
-      onPrint(finalDesc, finalValor, tipo);
+      onPrint(finalDesc, finalValor, tipo, observacao.trim() || undefined);
     } else {
       alert("Impressão não configurada ou disponível neste contexto.");
     }
@@ -146,7 +149,7 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
     
     // Apenas envia o cupom para a impressora sem fechar nem limpar o formulário
     if (onPrint) {
-      onPrint(finalDesc, finalValor, tipo);
+      onPrint(finalDesc, finalValor, tipo, observacao.trim() || undefined);
     } else {
       alert("Impressão não configurada ou disponível neste contexto.");
     }
@@ -170,7 +173,7 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
     return () => {
       window.removeEventListener("keydown", handleKeyDownShortcut);
     };
-  }, [isOpen, tipo, descricao, inputValue, adicoes, onPrint]);
+  }, [isOpen, tipo, descricao, observacao, inputValue, adicoes, onPrint]);
 
   const getThemeProps = () => {
     switch (tipo) {
@@ -331,6 +334,19 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
                 autoFocus
               />
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+              Observação (Opcional)
+            </label>
+            <input
+              type="text"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white p-3 rounded-xl outline-none font-bold text-xs text-slate-800 tracking-wide transition-soft"
+              placeholder="Ex: Número do recibo, observação importante..."
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">
