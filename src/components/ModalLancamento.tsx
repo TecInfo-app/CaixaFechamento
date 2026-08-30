@@ -338,19 +338,6 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
 
           <div className="space-y-1.5">
             <label className="font-mono text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-              Observação (Opcional)
-            </label>
-            <input
-              type="text"
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white p-3 rounded-xl outline-none font-bold text-xs text-slate-800 tracking-wide transition-soft"
-              placeholder="Ex: Número do recibo, observação importante..."
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="font-mono text-[10px] font-black text-slate-500 uppercase tracking-wider block">
               VALOR DO LANÇAMENTO OU COMPONENTES DA SOMA (R$)
             </label>
             <div className="relative flex gap-2">
@@ -378,6 +365,19 @@ export default function ModalLancamento({ isOpen, onClose, tipo, itemToEdit, onS
             <p className="text-[10px] text-slate-400 font-sans italic">
               Você pode somar múltiplos recibos neste lançamento. Digite o valor e clique em &quot;Somar&quot;.
             </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+              Observação (Opcional)
+            </label>
+            <input
+              type="text"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white p-3 rounded-xl outline-none font-bold text-xs text-slate-800 tracking-wide transition-soft"
+              placeholder="Ex: Número do recibo, observação importante..."
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+            />
           </div>
 
           {/* SOMA VISOR CARD */}
