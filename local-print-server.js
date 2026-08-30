@@ -37,6 +37,91 @@ function getBrowserPath() {
   return null;
 }
 
+// Função para converter HTML para Plain Text alinhado para bobina térmica
+function htmlToPlainText(html) {
+  // Remover tags script, style e links CSS que possam ter sido injetados
+  let clean = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  clean = clean.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  
+  // Largura máxima da bobina térmica em caracteres (padrão 40 colunas)
+  const totalWidth = 40;
+  
+  // Converter as flex-rows (justify-between) em colunas alinhadas nas laterais
+  clean = clean.replace(/<div[^>]*class="[^"]*justify-between[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, (match, inner) => {
+    const columns = [];
+    // Busca qualquer tag filha (geralmente span, div, p)
+    const childRegex = /<[a-z0-9]+[^>]*>([\s\S]*?)<\/[a-z0-9]+>/gi;
+    let m;
+    while ((m = childRegex.exec(inner)) !== null) {
+      let text = m[1].replace(/<[^>]+>/g, '').trim();
+      if (text) {
+        columns.push(text);
+      }
+    }
+    
+    if (columns.length >= 2) {
+      const col1 = columns[0];
+      const col2 = columns[columns.length - 1];
+      const spaces = totalWidth - col1.length - col2.length;
+      if (spaces > 0) {
+        return col1 + " ".repeat(spaces) + col2 + "\n";
+      } else {
+        return col1 + " " + col2 + "\n";
+      }
+    } else if (columns.length === 1) {
+      return columns[0] + "\n";
+    }
+    return match;
+  });
+
+  // Centralizar textos que tenham a classe text-center
+  clean = clean.replace(/<(div|p|h[1-6])[^>]*class="[^"]*text-center[^"]*"[^>]*>([\s\S]*?)<\/\1>/gi, (match, tag, inner) => {
+    let text = inner.replace(/<[^>]+>/g, '').trim();
+    if (!text) return "";
+    const padding = Math.max(0, Math.floor((totalWidth - text.length) / 2));
+    return " ".repeat(padding) + text + "\n";
+  });
+
+  // Tratar divisores (<hr>) como linhas tracejadas
+  clean = clean.replace(/<hr[^>]*class="[^"]*border-t-2[^"]*"[^>]*>/gi, "========================================\n");
+  clean = clean.replace(/<hr[^>]*>/gi, "----------------------------------------\n");
+
+  // Substituir br por quebra de linha
+  clean = clean.replace(/<br\s*\/?>/gi, "\n");
+
+  // Substituir fechamento de parágrafos e divs por quebra de linha
+  clean = clean.replace(/<\/p>/gi, "\n");
+  clean = clean.replace(/<\/div>/gi, "\n");
+
+  // Remover todas as outras tags HTML restantes
+  clean = clean.replace(/<[^>]+>/g, '');
+
+  // Decodificar entidades HTML mais comuns
+  clean = clean
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&ordm;/g, 'º')
+    .replace(/&ordf;/g, 'ª');
+
+  // Ajustar múltiplos saltos de linha consecutivos
+  const lines = clean.split(/\r?\n/).map(line => line.trimEnd());
+  const finalLines = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line === "" && finalLines[finalLines.length - 1] === "") {
+      continue;
+    }
+    finalLines.push(line);
+  }
+
+  // Adicionar 5 saltos de linha no final para avanço do papel (guilhotina térmica)
+  return finalLines.join('\n').trim() + "\n\n\n\n\n";
+}
+
 const app = express();
 const PORT = 3010;
 
@@ -110,53 +195,34 @@ app.post("/print", (req, res) => {
   const isLinux = process.platform === "linux";
 
   if (isWindows) {
-    // Injetar script para auto-imprimir e auto-fechar a aba no Microsoft Edge/Chrome silenciosamente
-    const printScript = `
-<script>
-  window.onload = function() {
-    window.print();
-    setTimeout(function() {
-      window.close();
-    }, 1000);
-  };
-</script>
-`;
-    let finalHtml = html;
-    if (finalHtml.includes("</body>")) {
-      finalHtml = finalHtml.replace("</body>", `${printScript}</body>`);
-    } else {
-      finalHtml = finalHtml + printScript;
-    }
+    // Converter o HTML do comprovante para texto simples formatado para bobina térmica de 40 colunas
+    const plainText = htmlToPlainText(html);
 
-    // Criar arquivo HTML temporário no diretório temporário do sistema operacional
-    const tempHtmlPath = path.join(os.tmpdir(), "temp-print.html");
-    fs.writeFileSync(tempHtmlPath, finalHtml, "utf8");
+    // Salvar o arquivo txt temporário com codificação ISO-8859-1 (Latin-1)
+    // que é a codificação nativa aceita pela imensa maioria das impressoras térmicas (evita acentos bugados!)
+    const tempTxtPath = path.join(os.tmpdir(), "temp-print.txt");
+    fs.writeFileSync(tempTxtPath, plainText, "latin1");
 
-    const browserPath = getBrowserPath() || "msedge.exe"; // Fallback para msedge.exe se não achar caminho
-    const escapedBrowserPath = browserPath.replace(/'/g, "''");
     const escapedPrinterName = printerName ? printerName.replace(/'/g, "''") : "";
-    const edgeProfileDir = path.join(os.tmpdir(), "browser-print-profile");
-    const escapedProfileDir = edgeProfileDir.replace(/'/g, "''");
-    const escapedHtmlPath = tempHtmlPath.replace(/'/g, "''");
 
-    // Otimização de comandos: Se não houver impressora selecionada (ou se for para usar a padrão), inicia direto sem buscar impressoras por WMI/PowerShell
     let command;
     if (!escapedPrinterName || escapedPrinterName.toLowerCase() === "padrão") {
-      command = `powershell -Command "$browser = '${escapedBrowserPath}'; $html = '${escapedHtmlPath}'; $profile = '${escapedProfileDir}'; Start-Process -FilePath $browser -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', ('--user-data-dir=' + $profile), $html -WindowStyle Hidden"`;
+      // Imprime na impressora padrão do Windows instantaneamente com o Bloco de Notas (/p)
+      command = `notepad.exe /p "${tempTxtPath}"`;
     } else {
-      // Se tiver impressora explícita, muda temporariamente, espera 2 segundos (suficiente para enviar ao spooler) e restaura
-      command = `powershell -Command "$browser = '${escapedBrowserPath}'; $html = '${escapedHtmlPath}'; $profile = '${escapedProfileDir}'; $printer = '${escapedPrinterName}'; $oldDefault = ''; try { $oldDefault = (Get-CimInstance Win32_Printer -Filter 'Default = true').Name } catch { try { $oldDefault = (Get-WmiObject Win32_Printer -Filter 'Default = true').Name } catch {} }; (New-Object -ComObject WScript.Network).SetDefaultPrinter($printer); Start-Process -FilePath $browser -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', ('--user-data-dir=' + $profile), $html -WindowStyle Hidden; Start-Sleep -Seconds 2; if ($oldDefault) { (New-Object -ComObject WScript.Network).SetDefaultPrinter($oldDefault) }"`;
+      // Imprime na impressora específica usando o Bloco de Notas (/pt)
+      command = `notepad.exe /pt "${tempTxtPath}" "${printerName}"`;
     }
 
     // Executa em segundo plano para o Express responder INSTANTANEAMENTE ao navegador
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error("Erro ao imprimir em segundo plano via PowerShell/Navegador:", error);
+        console.error("Erro ao imprimir via Bloco de Notas:", error);
       }
     });
 
-    // Retorna sucesso imediatamente (latência cai de 5-7 segundos para <15 milissegundos!)
-    res.json({ success: true, message: `Enviado para processamento de impressão em segundo plano!` });
+    // Retorna sucesso imediatamente (latência de resposta de <5ms!)
+    res.json({ success: true, message: `Enviado para a impressora [${printerName || "Padrão"}] via Bloco de Notas!` });
   } else if (isMac || isLinux) {
     // No macOS e Linux, o utilitário padrão 'lp' gerencia a fila e imprime o HTML perfeitamente.
     const dest = printerName ? `-d "${printerName}"` : "";
