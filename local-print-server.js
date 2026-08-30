@@ -18,6 +18,25 @@ const path = require("path");
 const os = require("os");
 const { exec } = require("child_process");
 
+// Função para buscar o executável do navegador instalado no Windows
+function getBrowserPath() {
+  const commonPaths = [
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    path.join(os.homedir(), "AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"),
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    path.join(os.homedir(), "AppData\\Local\\Microsoft\\Edge\\Application\\msedge.exe")
+  ];
+
+  for (const p of commonPaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return null;
+}
+
 const app = express();
 const PORT = 3010;
 
@@ -91,7 +110,7 @@ app.post("/print", (req, res) => {
   const isLinux = process.platform === "linux";
 
   if (isWindows) {
-    // Injetar script para auto-imprimir e auto-fechar a aba no Microsoft Edge silenciosamente
+    // Injetar script para auto-imprimir e auto-fechar a aba no Microsoft Edge/Chrome silenciosamente
     const printScript = `
 <script>
   window.onload = function() {
@@ -113,23 +132,19 @@ app.post("/print", (req, res) => {
     const tempHtmlPath = path.join(os.tmpdir(), "temp-print.html");
     fs.writeFileSync(tempHtmlPath, finalHtml, "utf8");
 
-    // No Windows, usamos o Microsoft Edge em modo de quiosque silencioso (--kiosk-printing)
-    // para enviar a impressão sem janelas de visualização.
-    // Mudamos temporariamente a impressora padrão se o usuário selecionou uma.
+    const browserPath = getBrowserPath() || "msedge.exe"; // Fallback para msedge.exe se não achar caminho
+    const escapedBrowserPath = browserPath.replace(/'/g, "''");
     const escapedPrinterName = printerName ? printerName.replace(/'/g, "''") : "";
-    const edgeProfileDir = path.join(os.tmpdir(), "edge-print-profile").replace(/\\/g, "\\\\");
-    const cleanTempHtmlPath = tempHtmlPath.replace(/\\/g, "\\\\");
+    const edgeProfileDir = path.join(os.tmpdir(), "browser-print-profile");
+    const escapedProfileDir = edgeProfileDir.replace(/'/g, "''");
+    const escapedHtmlPath = tempHtmlPath.replace(/'/g, "''");
 
-    let command;
-    if (escapedPrinterName) {
-      command = `powershell -Command "$oldDefault = ''; try { $oldDefault = (Get-CimInstance Win32_Printer -Filter 'Default = true').Name } catch { try { $oldDefault = (Get-WmiObject Win32_Printer -Filter 'Default = true').Name } catch {} }; (New-Object -ComObject WScript.Network).SetDefaultPrinter('${escapedPrinterName}'); Start-Process 'msedge.exe' -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', '--user-data-dir=\\"${edgeProfileDir}\\"', '\\"${cleanTempHtmlPath}\\"' -WindowStyle Hidden; Start-Sleep -Seconds 4; if ($oldDefault) { (New-Object -ComObject WScript.Network).SetDefaultPrinter($oldDefault) }"`;
-    } else {
-      command = `powershell -Command "Start-Process 'msedge.exe' -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', '--user-data-dir=\\"${edgeProfileDir}\\"', '\\"${cleanTempHtmlPath}\\"' -WindowStyle Hidden"`;
-    }
-    
+    // Usamos um script do PowerShell estruturado com variáveis locais para evitar problemas com aspas aninhadas e caminhos de arquivo
+    const command = `powershell -Command "$browser = '${escapedBrowserPath}'; $html = '${escapedHtmlPath}'; $profile = '${escapedProfileDir}'; $printer = '${escapedPrinterName}'; $oldDefault = ''; try { $oldDefault = (Get-CimInstance Win32_Printer -Filter 'Default = true').Name } catch { try { $oldDefault = (Get-WmiObject Win32_Printer -Filter 'Default = true').Name } catch {} }; if ($printer) { (New-Object -ComObject WScript.Network).SetDefaultPrinter($printer) }; Start-Process -FilePath $browser -ArgumentList '--kiosk', '--kiosk-printing', '--no-first-run', ('--user-data-dir=' + $profile), $html -WindowStyle Hidden; if ($printer) { Start-Sleep -Seconds 5; if ($oldDefault) { (New-Object -ComObject WScript.Network).SetDefaultPrinter($oldDefault) } }"`;
+
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error("Erro ao imprimir via PowerShell/Edge:", error);
+        console.error("Erro ao imprimir via PowerShell/Navegador:", error);
         return res.status(500).json({ success: false, error: error.message });
       }
       res.json({ success: true, message: `Enviado para a fila de impressão [${printerName || "Padrão"}] do Windows!` });
