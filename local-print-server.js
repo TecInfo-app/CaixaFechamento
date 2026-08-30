@@ -118,8 +118,8 @@ function htmlToPlainText(html) {
     finalLines.push(line);
   }
 
-  // Adicionar 5 saltos de linha no final para avanço do papel (guilhotina térmica)
-  return finalLines.join('\n').trim() + "\n\n\n\n\n";
+  // Adicionar apenas 2 saltos de linha no final (o suficiente para o corte da guilhotina sem desperdício)
+  return finalLines.join('\n').trim() + "\n\n";
 }
 
 const app = express();
