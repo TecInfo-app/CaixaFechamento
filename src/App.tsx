@@ -263,7 +263,7 @@ export default function App() {
           localStorage.setItem("caixa_local_db", JSON.stringify(remoteDB));
         } else {
           // Push initial defaults to newly created Firestore DB
-          setDoc(doc(db, "db_global", "local_db"), dbParsed).catch((error) => {
+          setDoc(doc(db, "db_global", "local_db"), JSON.parse(JSON.stringify(dbParsed))).catch((error) => {
             handleFirestoreError(error, OperationType.WRITE, "db_global/local_db");
           });
         }
@@ -299,7 +299,7 @@ export default function App() {
             try {
               const parsed = JSON.parse(savedSession) as CaixaTurno;
               setCaixaTurno(parsed);
-              setDoc(doc(db, "caixa_session", docId), parsed).catch((error) => {
+              setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(parsed))).catch((error) => {
                 handleFirestoreError(error, OperationType.WRITE, `caixa_session/${docId}`);
               });
             } catch (err) {
@@ -316,7 +316,7 @@ export default function App() {
             setCaixaTurno(emptySession);
             setSaldoFinalInput("");
             localStorage.setItem(sessionKey, JSON.stringify(emptySession));
-            setDoc(doc(db, "caixa_session", docId), emptySession).catch((error) => {
+            setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(emptySession))).catch((error) => {
               handleFirestoreError(error, OperationType.WRITE, `caixa_session/${docId}`);
             });
           }
@@ -337,7 +337,7 @@ export default function App() {
     setLocalDB(newDB);
     localStorage.setItem("caixa_local_db", JSON.stringify(newDB));
     try {
-      await setDoc(doc(db, "db_global", "local_db"), newDB);
+      await setDoc(doc(db, "db_global", "local_db"), JSON.parse(JSON.stringify(newDB)));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "db_global/local_db");
     }
@@ -350,7 +350,7 @@ export default function App() {
     localStorage.setItem(sessionKey, JSON.stringify(newSession));
     try {
       const docId = `${loja}_${data}_${turno}`;
-      await setDoc(doc(db, "caixa_session", docId), newSession);
+      await setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(newSession)));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `caixa_session/${loja}_${data}_${turno}`);
     }
@@ -511,7 +511,7 @@ export default function App() {
 
     try {
       const docId = `${fechamento.loja}_${fechamento.data}_${fechamento.turno}`;
-      await setDoc(doc(db, "caixa_session", docId), reabertoCaixa);
+      await setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(reabertoCaixa)));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `caixa_session/${fechamento.loja}_${fechamento.data}_${fechamento.turno}`);
     }
