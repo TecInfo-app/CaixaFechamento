@@ -529,7 +529,7 @@ export default function App() {
   const handleSaveVenda = (servico: number, itens: number, editId: number | null) => {
     if (editId) {
       // --- UPDATE EXISTING SALE ---
-      const updatedVendas = localDB.vendas.map((v) =>
+      const updatedVendas = (localDB.vendas || []).map((v) =>
         v.id === editId ? { ...v, servico, itens } : v
       );
       saveLocalDBToStorage({ ...localDB, vendas: updatedVendas });
@@ -550,17 +550,17 @@ export default function App() {
       };
 
       // Add to LocalDB list
-      const updatedVendas = [...localDB.vendas, newVenda];
+      const updatedVendas = [...(localDB.vendas || []), newVenda];
       saveLocalDBToStorage({ ...localDB, vendas: updatedVendas });
 
       // Add to current session list
-      const updatedSessionVendas = [...caixaTurno.vendas, newVenda];
+      const updatedSessionVendas = [...(caixaTurno.vendas || []), newVenda];
       saveSessionToStorage({ ...caixaTurno, vendas: updatedSessionVendas });
     }
   };
 
   const handleExcluirVenda = (id: number) => {
-    const updatedVendas = localDB.vendas.filter((v) => v.id !== id);
+    const updatedVendas = (localDB.vendas || []).filter((v) => v.id !== id);
     saveLocalDBToStorage({ ...localDB, vendas: updatedVendas });
 
     const updatedSessionVendas = (caixaTurno.vendas || []).filter((v) => v.id !== id);
@@ -578,13 +578,13 @@ export default function App() {
     if (id) {
       // --- UPDATE EXISTING ENTRY ---
       // Update in LocalDB
-      const updatedLancamentos = localDB.lancamentos.map((l) =>
+      const updatedLancamentos = (localDB.lancamentos || []).map((l) =>
         l.id === id ? { ...l, descricao, valor, tipo, observacao } : l
       );
       saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
 
       // Update in active session
-      const updatedSessionLancamentos = caixaTurno.lancamentos.map((l) =>
+      const updatedSessionLancamentos = (caixaTurno.lancamentos || []).map((l) =>
         l.id === id ? { ...l, descricao, valor, tipo, observacao } : l
       );
       saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
@@ -601,10 +601,10 @@ export default function App() {
         observacao
       };
 
-      const updatedLancamentos = [...localDB.lancamentos, newLancamento];
+      const updatedLancamentos = [...(localDB.lancamentos || []), newLancamento];
       saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
 
-      const updatedSessionLancamentos = [...caixaTurno.lancamentos, newLancamento];
+      const updatedSessionLancamentos = [...(caixaTurno.lancamentos || []), newLancamento];
       saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
     }
     setLancamentoToEdit(null);
@@ -614,10 +614,10 @@ export default function App() {
   const handleExcluirLancamento = (id: number) => {
     if (!confirm("Tem certeza de que deseja excluir este lançamento?")) return;
 
-    const updatedLancamentos = localDB.lancamentos.filter((l) => l.id !== id);
+    const updatedLancamentos = (localDB.lancamentos || []).filter((l) => l.id !== id);
     saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
 
-    const updatedSessionLancamentos = caixaTurno.lancamentos.filter((l) => l.id !== id);
+    const updatedSessionLancamentos = (caixaTurno.lancamentos || []).filter((l) => l.id !== id);
     saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
   };
 
@@ -755,7 +755,7 @@ export default function App() {
       saveLocalDBToStorage({ ...localDB, lancamentos: finalLancamentos });
 
       // Append entry to current active cashier session
-      const finalSessionLancamentos = [...caixaTurno.lancamentos, newLancamento];
+      const finalSessionLancamentos = [...(caixaTurno.lancamentos || []), newLancamento];
       saveSessionToStorage({ ...caixaTurno, lancamentos: finalSessionLancamentos });
     } else {
       // Just save the updated pending lists to DB
@@ -847,7 +847,7 @@ export default function App() {
       loja: lojaNome
     };
 
-    const updatedLancamentos = [...localDB.lancamentos, newLancamento];
+    const updatedLancamentos = [...(localDB.lancamentos || []), newLancamento];
     saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
   };
 
