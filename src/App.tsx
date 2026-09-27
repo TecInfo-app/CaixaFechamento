@@ -92,7 +92,7 @@ export default function App() {
   const [vendaToEdit, setVendaToEdit] = useState<Venda | null>(null);
 
   // --- Printing Trigger State ---
-  const [printType, setPrintType] = useState<"fechamento" | "item" | "consolidado" | "recebimento" | "lista_pendentes" | null>(null);
+  const [printType, setPrintType] = useState<"fechamento" | "item" | "consolidado" | "recebimento" | "lista_pendentes" | "devedor_individual" | null>(null);
   const [printItem, setPrintItem] = useState<Lancamento | null>(null);
   const [printFechamento, setPrintFechamento] = useState<Fechamento | null>(null);
   const [printConsolidado, setPrintConsolidado] = useState<any | null>(null);
@@ -108,6 +108,22 @@ export default function App() {
     loja: string;
     devedores: { cliente: string; saldoDevedor: number }[];
     totalPendentes: number;
+    dataHora: string;
+  } | null>(null);
+  const [printDevedorIndividual, setPrintDevedorIndividual] = useState<{
+    loja: string;
+    cliente: string;
+    totalOriginal: number;
+    totalPago: number;
+    saldoDevedor: number;
+    registros: {
+      id: number;
+      data: string;
+      turno: string;
+      valorOriginal: number;
+      valorPago: number;
+      valorRestante: number;
+    }[];
     dataHora: string;
   } | null>(null);
 
@@ -828,6 +844,52 @@ export default function App() {
       setTimeout(() => {
         setPrintType(null);
         setPrintListaPendentes(null);
+      }, 500);
+    }, 250);
+  };
+
+  const handlePrintDevedorIndividual = (devedor: {
+    cliente: string;
+    loja: string;
+    totalOriginal: number;
+    totalPago: number;
+    saldoDevedor: number;
+    registros: {
+      id: number;
+      data: string;
+      turno: string;
+      valorOriginal: number;
+      valorPago: number;
+      valorRestante: number;
+    }[];
+  }) => {
+    setPrintType("devedor_individual");
+    setPrintDevedorIndividual({
+      loja: devedor.loja,
+      cliente: devedor.cliente,
+      totalOriginal: devedor.totalOriginal,
+      totalPago: devedor.totalPago,
+      saldoDevedor: devedor.saldoDevedor,
+      registros: devedor.registros,
+      dataHora: `${data.split("-").reverse().join("/")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+    });
+
+    setTimeout(async () => {
+      let printedSilently = false;
+      if (isLocalPrintEnabled) {
+        const printAreaEl = document.getElementById("printArea");
+        if (printAreaEl) {
+          printedSilently = await tryLocalPrint(printAreaEl.innerHTML);
+        }
+      }
+
+      if (!printedSilently) {
+        window.print();
+      }
+
+      setTimeout(() => {
+        setPrintType(null);
+        setPrintDevedorIndividual(null);
       }, 500);
     }, 250);
   };
@@ -1921,6 +1983,7 @@ export default function App() {
           onPrintRecebimento={handlePrintPaymentReceipt}
           onAddLancamentoPendente={handleAddLancamentoPendenteDirect}
           onPrintListaPendentes={handlePrintListaPendentes}
+          onPrintDevedorIndividual={handlePrintDevedorIndividual}
           onUpdateLancamentos={handleUpdateLancamentosDirect}
         />
 
@@ -2042,6 +2105,7 @@ export default function App() {
         activeConsolidado={printConsolidado}
         activeRecebimento={printRecebimento}
         activeListaPendentes={printListaPendentes}
+        activeDevedorIndividual={printDevedorIndividual}
       />
     </>
   );

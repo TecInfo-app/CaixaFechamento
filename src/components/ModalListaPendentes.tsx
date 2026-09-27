@@ -37,6 +37,7 @@ interface ModalListaPendentesProps {
     devedores: { cliente: string; saldoDevedor: number }[],
     totalPendentes: number
   ) => void;
+  onPrintDevedorIndividual?: (devedor: DevedorAgrupado) => void;
   onUpdateLancamentos?: (updatedLancamentos: Lancamento[]) => void;
 }
 
@@ -70,6 +71,7 @@ export default function ModalListaPendentes({
   onPrintRecebimento,
   onAddLancamentoPendente,
   onPrintListaPendentes,
+  onPrintDevedorIndividual,
   onUpdateLancamentos,
 }: ModalListaPendentesProps) {
   const [filtroLoja, setFiltroLoja] = useState(activeLoja);
@@ -1017,15 +1019,24 @@ export default function ModalListaPendentes({
                       </div>
                     </div>
 
-                    <div className="flex justify-between sm:justify-start items-center gap-4">
+                    <div className="flex justify-between sm:justify-start items-center gap-2 sm:gap-3 flex-wrap">
                       
                       {/* Financial values */}
-                      <div className="text-right">
+                      <div className="text-right mr-1">
                         <span className="font-mono text-[8px] text-slate-400 uppercase block font-bold leading-tight">SALDO RESTANTE</span>
                         <span className="font-mono text-sm font-black text-rose-500 tracking-tight">
                           R$ {dev.saldoDevedor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
+
+                      {/* Individual Debtor Print Button */}
+                      <button
+                        onClick={() => onPrintDevedorIndividual && onPrintDevedorIndividual(dev)}
+                        className="bg-slate-800 hover:bg-slate-900 text-white font-mono font-bold py-2 px-3 rounded-xl text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                        title="Imprimir total e comprovante individual deste devedor"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-amber-400" /> Imprimir
+                      </button>
 
                       {dev.saldoDevedor > 0.01 ? (
                         <button
