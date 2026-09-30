@@ -22,6 +22,7 @@ export interface Lancamento {
   loja: string;
   pagamentos?: PagamentoPendente[];
   observacao?: string;
+  hora?: string;
 }
 
 export interface Venda {

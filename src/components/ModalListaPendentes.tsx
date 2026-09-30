@@ -44,6 +44,7 @@ interface ModalListaPendentesProps {
 interface ItemDevedorDetail {
   id: number;
   data: string;
+  hora?: string;
   turno: string;
   valorOriginal: number;
   valorPago: number;
@@ -133,9 +134,16 @@ export default function ModalListaPendentes({
       const totalPagoItem = (l.pagamentos || []).reduce((acc, p) => acc + p.valor, 0);
       const valorRestanteItem = l.valor - totalPagoItem;
 
+      const itemHora =
+        l.hora ||
+        (typeof l.id === "number" && l.id > 1500000000000
+          ? new Date(l.id).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+          : "--:--");
+
       const itemDetail: ItemDevedorDetail = {
         id: l.id,
         data: l.data,
+        hora: itemHora,
         turno: l.turno,
         valorOriginal: l.valor,
         valorPago: totalPagoItem,
@@ -1063,7 +1071,9 @@ export default function ModalListaPendentes({
                         <div className="flex items-center gap-2">
                           <CornerDownRight className="w-3.5 h-3.5 text-slate-400" />
                           <div>
-                            <span className="text-slate-700 font-semibold uppercase">{reg.data.split("-").reverse().join("/")} ({reg.turno})</span>
+                            <span className="text-slate-700 font-semibold uppercase">
+                              {reg.data.split("-").reverse().join("/")} às {reg.hora || "--:--"} ({reg.turno})
+                            </span>
                             <span className="text-slate-400 block text-[9px]">IDTítulo: #{reg.id}</span>
                           </div>
                         </div>

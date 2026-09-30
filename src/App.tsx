@@ -119,6 +119,7 @@ export default function App() {
     registros: {
       id: number;
       data: string;
+      hora?: string;
       turno: string;
       valorOriginal: number;
       valorPago: number;
@@ -614,7 +615,8 @@ export default function App() {
         turno,
         data,
         loja,
-        observacao
+        observacao,
+        hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
       };
 
       const updatedLancamentos = [...(localDB.lancamentos || []), newLancamento];
@@ -857,6 +859,7 @@ export default function App() {
     registros: {
       id: number;
       data: string;
+      hora?: string;
       turno: string;
       valorOriginal: number;
       valorPago: number;
@@ -906,7 +909,8 @@ export default function App() {
       tipo: "pendente",
       turno,
       data,
-      loja: lojaNome
+      loja: lojaNome,
+      hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     };
 
     const updatedLancamentos = [...(localDB.lancamentos || []), newLancamento];
@@ -1954,7 +1958,8 @@ export default function App() {
               turno,
               data,
               loja,
-              observacao
+              observacao,
+              hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
             };
             triggerMockPrint("item", tempItem, null, null);
           }}

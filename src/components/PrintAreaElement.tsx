@@ -47,6 +47,7 @@ interface PrintAreaElementProps {
     registros: {
       id: number;
       data: string;
+      hora?: string;
       turno: string;
       valorOriginal: number;
       valorPago: number;
@@ -71,28 +72,38 @@ export default function PrintAreaElement({
     <div id="printArea" className="receipt-mode text-black text-sm p-4 w-[300px] bg-white mx-auto">
       {/* 1. SINGLE ITEM VOUCHER PRINT */}
       {printType === "item" && activeItem && (
-        <div className="space-y-4">
+        <div className="space-y-3 font-mono">
           <div className="text-center font-black text-lg border-b border-dashed border-black pb-2 mb-2 uppercase">
             {activeItem.loja}
           </div>
-          <div className="text-center font-bold tracking-wider mb-3">
-            COMPROVANTE DE LANÇAMENTO
+          <div className="text-center font-bold tracking-wider mb-2 uppercase">
+            {activeItem.tipo === "pendente" ? "COMPROVANTE DE PENDENTE" : "COMPROVANTE DE LANÇAMENTO"}
           </div>
-          <div className="space-y-1 font-mono text-xs">
-            <p><b>ID:</b> {activeItem.id}</p>
-            <p><b>DATA:</b> {activeItem.data}</p>
-            <p><b>TURNO:</b> {activeItem.turno}</p>
-            <p><b>CATEGORIA:</b> {activeItem.tipo.toUpperCase()}</p>
-            <p className="whitespace-pre-wrap"><b>DESC:</b> {activeItem.descricao}</p>
-            {activeItem.observacao && <p className="whitespace-pre-wrap"><b>OBS:</b> {activeItem.observacao}</p>}
+          <div className="space-y-1 text-xs">
+            {activeItem.tipo === "pendente" ? (
+              <>
+                <p><b>DEVEDOR:</b> {activeItem.descricao.toUpperCase()}</p>
+                <p><b>DATA:</b> {activeItem.data.split("-").reverse().join("/")}</p>
+                <p><b>HORA:</b> {activeItem.hora || (typeof activeItem.id === "number" && activeItem.id > 1500000000000 ? new Date(activeItem.id).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--")}</p>
+                {activeItem.observacao && <p className="whitespace-pre-wrap"><b>OBS:</b> {activeItem.observacao}</p>}
+              </>
+            ) : (
+              <>
+                <p><b>ID:</b> {activeItem.id}</p>
+                <p><b>DATA:</b> {activeItem.data}</p>
+                <p><b>TURNO:</b> {activeItem.turno}</p>
+                <p><b>CATEGORIA:</b> {activeItem.tipo.toUpperCase()}</p>
+                <p className="whitespace-pre-wrap"><b>DESC:</b> {activeItem.descricao}</p>
+                {activeItem.observacao && <p className="whitespace-pre-wrap"><b>OBS:</b> {activeItem.observacao}</p>}
+              </>
+            )}
           </div>
-          <hr className="border-t border-dashed border-black my-3" />
-          <div className="text-right text-lg font-black font-mono">
+          <hr className="border-t border-dashed border-black my-2" />
+          <div className="text-right text-base font-black">
             VALOR: R$ {activeItem.valor.toFixed(2)}
           </div>
-          <br />
-          <div className="text-center text-[10px] mt-8 border-t border-slate-300 pt-2">
-            Responsável: ___________________________
+          <div className="text-center text-[10px] mt-6 border-t border-black pt-2">
+            Assinatura: ___________________________
           </div>
         </div>
       )}
@@ -385,70 +396,53 @@ export default function PrintAreaElement({
 
       {/* 6. INDIVIDUAL DEBTOR STATEMENT / DEMONSTRATIVO DO DEVEDOR */}
       {printType === "devedor_individual" && activeDevedorIndividual && (
-        <div className="space-y-4">
-          <div className="text-center font-black text-lg border-b border-dashed border-black pb-2 mb-2 uppercase">
+        <div className="space-y-3 font-mono text-black">
+          <div className="text-center font-black text-base border-b border-dashed border-black pb-1 mb-1 uppercase">
             {activeDevedorIndividual.loja}
           </div>
-          <div className="text-center font-black tracking-wider text-sm mb-1 uppercase">
-            DEMONSTRATIVO DE DÉBITO PENDENTE
+          <div className="text-center font-black tracking-wider text-xs uppercase">
+            COMPROVANTE DE PENDENTE
           </div>
-          <p className="font-mono text-[9px] text-center text-slate-500 uppercase">
-            EMISSÃO: {activeDevedorIndividual.dataHora}
-          </p>
-
-          <hr className="border-t border-dashed border-black my-2" />
-
-          <div className="space-y-1 font-mono text-xs">
-            <p><b>DEVEDOR:</b> {activeDevedorIndividual.cliente.toUpperCase()}</p>
-            <p><b>TOTAL DE TÍTULOS:</b> {activeDevedorIndividual.registros.length}</p>
-            <p><b>LOJA:</b> {activeDevedorIndividual.loja.toUpperCase()}</p>
+          <div className="text-center text-xs font-black uppercase pb-1 border-b border-dashed border-black">
+            DEVEDOR: {activeDevedorIndividual.cliente}
           </div>
 
-          <hr className="border-t border-dashed border-black my-2" />
+          {/* Cabeçalho das colunas com apenas DATA, HORA e VALOR */}
+          <div className="flex justify-between text-[11px] font-black border-b border-black pt-1 pb-1 uppercase">
+            <span className="w-24">DATA</span>
+            <span className="w-16 text-center">HORA</span>
+            <span className="flex-1 text-right">VALOR</span>
+          </div>
 
-          <div className="space-y-2 font-mono text-xs">
-            <div className="font-bold text-[10px] text-slate-700 uppercase border-b border-dotted border-black/40 pb-0.5">
-              DETALHAMENTO DOS TÍTULOS:
-            </div>
+          {/* Lista com apenas a DATA, HORA e VALOR de cada pendente */}
+          <div className="space-y-1 text-xs pt-0.5">
             {activeDevedorIndividual.registros.map((reg, idx) => (
-              <div key={idx} className="border-b border-dotted border-black/20 pb-1 text-[11px]">
-                <div className="flex justify-between font-bold">
-                  <span>#{reg.id} • {reg.data.split("-").reverse().join("/")} ({reg.turno})</span>
-                  <span>R$ {reg.valorRestante.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[9px] text-slate-600">
-                  <span>Valor Original: R$ {reg.valorOriginal.toFixed(2)}</span>
-                  <span>Já Pago: R$ {reg.valorPago.toFixed(2)}</span>
-                </div>
+              <div key={idx} className="flex justify-between items-center py-0.5 border-b border-dotted border-black/30">
+                <span className="w-24 font-bold">
+                  {reg.data.split("-").reverse().join("/")}
+                </span>
+                <span className="w-16 text-center font-bold text-black">
+                  {reg.hora || "--:--"}
+                </span>
+                <span className="flex-1 text-right font-black">
+                  R$ {reg.valorRestante.toFixed(2)}
+                </span>
               </div>
             ))}
           </div>
 
           <hr className="border-t-2 border-black my-2" />
 
-          <div className="space-y-1 font-mono text-xs">
-            <div className="flex justify-between">
-              <span>VALOR TOTAL ORIGINAL:</span>
-              <span>R$ {activeDevedorIndividual.totalOriginal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-emerald-800 font-semibold">
-              <span>TOTAL JÁ AMORTIZADO / PAGO:</span>
-              <span>R$ {activeDevedorIndividual.totalPago.toFixed(2)}</span>
-            </div>
-            <hr className="border-t border-dotted border-black my-1.5" />
-            <div className="flex justify-between font-black text-sm text-slate-900">
-              <span>SALDO DEVEDOR TOTAL:</span>
-              <span>R$ {activeDevedorIndividual.saldoDevedor.toFixed(2)}</span>
-            </div>
+          {/* Total do devedor */}
+          <div className="flex justify-between text-sm font-black pt-0.5">
+            <span>TOTAL A PAGAR:</span>
+            <span>R$ {activeDevedorIndividual.saldoDevedor.toFixed(2)}</span>
           </div>
 
-          <hr className="border-t border-dashed border-black my-3" />
+          <hr className="border-t border-dashed border-black my-2" />
 
-          <div className="text-center text-[10px] mt-8 border-t border-slate-300 pt-2 font-mono">
-            Assinatura do Cliente: _____________________
-          </div>
-          <div className="text-center text-[9px] text-slate-400 font-mono mt-1">
-            Demonstrativo emitido via terminal de caixa.
+          <div className="text-center text-[10px] mt-6 border-t border-black pt-1">
+            Assinatura: _____________________
           </div>
         </div>
       )}
