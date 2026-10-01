@@ -83,15 +83,17 @@ export default function PrintAreaElement({
             {activeItem.tipo === "pendente" ? (
               <>
                 <p><b>DEVEDOR:</b> {activeItem.descricao.toUpperCase()}</p>
-                <p><b>DATA:</b> {activeItem.data.split("-").reverse().join("/")}</p>
-                <p><b>HORA:</b> {activeItem.hora || (typeof activeItem.id === "number" && activeItem.id > 1500000000000 ? new Date(activeItem.id).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--")}</p>
+                <div className="flex justify-between py-0.5 border-b border-dotted border-black/30">
+                  <span><b>DATA:</b> {activeItem.data.split("-").reverse().join("/")}</span>
+                  <span className="uppercase"><b>TURNO:</b> {activeItem.turno}</span>
+                </div>
+                {activeItem.hora && <p><b>HORA:</b> {activeItem.hora}</p>}
                 {activeItem.observacao && <p className="whitespace-pre-wrap"><b>OBS:</b> {activeItem.observacao}</p>}
               </>
             ) : (
               <>
-                <p><b>ID:</b> {activeItem.id}</p>
-                <p><b>DATA:</b> {activeItem.data}</p>
-                <p><b>TURNO:</b> {activeItem.turno}</p>
+                <p><b>DATA:</b> {activeItem.data.split("-").reverse().join("/")}</p>
+                <p><b>TURNO:</b> {activeItem.turno?.toUpperCase()}</p>
                 <p><b>CATEGORIA:</b> {activeItem.tipo.toUpperCase()}</p>
                 <p className="whitespace-pre-wrap"><b>DESC:</b> {activeItem.descricao}</p>
                 {activeItem.observacao && <p className="whitespace-pre-wrap"><b>OBS:</b> {activeItem.observacao}</p>}
@@ -407,22 +409,22 @@ export default function PrintAreaElement({
             DEVEDOR: {activeDevedorIndividual.cliente}
           </div>
 
-          {/* Cabeçalho das colunas com apenas DATA, HORA e VALOR */}
+          {/* Cabeçalho das colunas com apenas DATA, TURNO e VALOR */}
           <div className="flex justify-between text-[11px] font-black border-b border-black pt-1 pb-1 uppercase">
             <span className="w-24">DATA</span>
-            <span className="w-16 text-center">HORA</span>
+            <span className="w-16 text-center">TURNO</span>
             <span className="flex-1 text-right">VALOR</span>
           </div>
 
-          {/* Lista com apenas a DATA, HORA e VALOR de cada pendente */}
+          {/* Lista com cada lançamento na linha: DATA, TURNO e VALOR */}
           <div className="space-y-1 text-xs pt-0.5">
             {activeDevedorIndividual.registros.map((reg, idx) => (
               <div key={idx} className="flex justify-between items-center py-0.5 border-b border-dotted border-black/30">
                 <span className="w-24 font-bold">
                   {reg.data.split("-").reverse().join("/")}
                 </span>
-                <span className="w-16 text-center font-bold text-black">
-                  {reg.hora || "--:--"}
+                <span className="w-16 text-center font-bold text-black uppercase">
+                  {reg.turno || "DIA"}
                 </span>
                 <span className="flex-1 text-right font-black">
                   R$ {reg.valorRestante.toFixed(2)}

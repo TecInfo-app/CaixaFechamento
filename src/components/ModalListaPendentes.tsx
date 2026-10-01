@@ -1072,9 +1072,8 @@ export default function ModalListaPendentes({
                           <CornerDownRight className="w-3.5 h-3.5 text-slate-400" />
                           <div>
                             <span className="text-slate-700 font-semibold uppercase">
-                              {reg.data.split("-").reverse().join("/")} às {reg.hora || "--:--"} ({reg.turno})
+                              {reg.data.split("-").reverse().join("/")} ({reg.turno}){reg.hora ? ` às ${reg.hora}` : ""}
                             </span>
-                            <span className="text-slate-400 block text-[9px]">IDTítulo: #{reg.id}</span>
                           </div>
                         </div>
 
