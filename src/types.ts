@@ -45,6 +45,19 @@ export interface DadosManuais {
   [idDia: string]: DadosManuaisDay;
 }
 
+export interface NotificacaoManual {
+  id: number;
+  loja: string;
+  operador: string;
+  dataReferencia: string;
+  dataHora: string;
+  delivery: number;
+  taxaEntrega: number;
+  couvert: number;
+  descDelivery: number;
+  totalLiquido: number;
+}
+
 export interface Fechamento {
   id: number;
   loja: string;
@@ -65,6 +78,7 @@ export interface LocalDB {
   historicoFechamentos: Fechamento[];
   lojas?: string[];
   operadores?: string[];
+  ultimaNotificacaoManual?: NotificacaoManual;
 }
 
 export interface CaixaTurno {

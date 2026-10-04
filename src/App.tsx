@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import {
   User,
   Settings,
@@ -26,7 +26,10 @@ import {
   Receipt,
   Zap,
   Info,
-  ClipboardList
+  ClipboardList,
+  Bell,
+  BellRing,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -38,7 +41,8 @@ import {
   DadosManuais,
   Fechamento,
   LocalDB,
-  CaixaTurno
+  CaixaTurno,
+  NotificacaoManual
 } from "./types";
 
 import { doc, getDocFromServer, onSnapshot, setDoc } from "firebase/firestore";
@@ -147,6 +151,91 @@ export default function App() {
 
   // --- Welcome Screen Selection Modal ---
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+
+  // --- Real-time Pop-up & Push Notification State ---
+  const [activePopupNotif, setActivePopupNotif] = useState<NotificacaoManual | null>(null);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      return Notification.permission;
+    }
+    return "default";
+  });
+  const lastSeenNotifIdRef = useRef<number>(
+    Number(localStorage.getItem("caixa_last_notif_id") || "0")
+  );
+  const isFirstSnapshotRef = useRef<boolean>(true);
+  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Synthesize pleasant 2-tone notification sound using Web Audio API
+  const playNotificationSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      const playTone = (freq: number, startTime: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.001, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.22, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = ctx.currentTime;
+      playTone(587.33, now, 0.18);        // D5
+      playTone(880.0, now + 0.14, 0.35);  // A5
+    } catch (e) {
+      console.warn("Não foi possível reproduzir som de notificação:", e);
+    }
+  };
+
+  // Trigger native Browser / OS Push Notification
+  const triggerBrowserPushNotification = (notif: NotificacaoManual) => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      try {
+        const [y, m, d] = (notif.dataReferencia || "").split("-");
+        const dataBr = d && m && y ? `${d}/${m}/${y}` : notif.dataReferencia;
+        new Notification(`📊 Lançamentos Manuais Gravados • ${notif.loja}`, {
+          body: `Data: ${dataBr} | Delivery: R$ ${notif.delivery.toFixed(2)} | Líquido: R$ ${notif.totalLiquido.toFixed(2)}\nGravado por ${notif.operador} às ${notif.dataHora}`,
+          tag: `manual-save-${notif.id}`,
+        });
+      } catch (e) {
+        console.warn("Falha ao disparar Push Notification nativa:", e);
+      }
+    }
+  };
+
+  // Dispatch both on-screen Pop-up, Sound, and OS Push Notification
+  const dispatchLocalAndPushAlert = (notif: NotificacaoManual) => {
+    setActivePopupNotif(notif);
+    playNotificationSound();
+    triggerBrowserPushNotification(notif);
+
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current);
+    }
+    popupTimeoutRef.current = setTimeout(() => {
+      setActivePopupNotif(null);
+    }, 10000);
+  };
+
+  // Request permission for native Push Notifications
+  const handleRequestPushPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    try {
+      const perm = await Notification.requestPermission();
+      setPushPermission(perm);
+    } catch (err) {
+      console.warn("Permissão de notificação não pôde ser solicitada:", err);
+    }
+  };
 
   // Fetch printers from local print server
   const fetchAvailablePrinters = async (urlToFetch?: string) => {
@@ -278,7 +367,29 @@ export default function App() {
           const remoteDB = docSnap.data() as LocalDB;
           setLocalDB(remoteDB);
           localStorage.setItem("caixa_local_db", JSON.stringify(remoteDB));
+
+          const incomingNotif = remoteDB.ultimaNotificacaoManual;
+          if (incomingNotif && incomingNotif.id) {
+            if (isFirstSnapshotRef.current) {
+              // On initial boot, mark current remote notification as seen unless it was emitted in the last 6 seconds
+              const isBrandNew = Date.now() - incomingNotif.id < 6000;
+              if (isBrandNew && incomingNotif.id > lastSeenNotifIdRef.current) {
+                lastSeenNotifIdRef.current = incomingNotif.id;
+                localStorage.setItem("caixa_last_notif_id", String(incomingNotif.id));
+                dispatchLocalAndPushAlert(incomingNotif);
+              } else {
+                lastSeenNotifIdRef.current = incomingNotif.id;
+                localStorage.setItem("caixa_last_notif_id", String(incomingNotif.id));
+              }
+            } else if (incomingNotif.id > lastSeenNotifIdRef.current) {
+              lastSeenNotifIdRef.current = incomingNotif.id;
+              localStorage.setItem("caixa_last_notif_id", String(incomingNotif.id));
+              dispatchLocalAndPushAlert(incomingNotif);
+            }
+          }
+          isFirstSnapshotRef.current = false;
         } else {
+          isFirstSnapshotRef.current = false;
           // Push initial defaults to newly created Firestore DB
           setDoc(doc(db, "db_global", "local_db"), JSON.parse(JSON.stringify(dbParsed))).catch((error) => {
             handleFirestoreError(error, OperationType.WRITE, "db_global/local_db");
@@ -692,15 +803,54 @@ export default function App() {
     triggerMockPrint("fechamento", null, fechamento, null);
   };
 
-  // Commit manual consolidated values inside ModalConsolidado
-  const handleSaveDadosManuais = (
+  // Commit manual consolidated values inside ModalConsolidado (supports silent auto-save or full notification broadcast)
+  const handleSaveDadosManuais = async (
     chosenLoja: string,
     chosenData: string,
-    values: { delivery: number; taxaEntrega: number; couvert: number; descDelivery: number }
+    values: { delivery: number; taxaEntrega: number; couvert: number; descDelivery: number },
+    options?: { notify?: boolean; totalLiquido?: number }
   ) => {
     const key = `${chosenLoja}_${chosenData}`;
     const newDadosManuais = { ...localDB.dadosManuais, [key]: values };
-    saveLocalDBToStorage({ ...localDB, dadosManuais: newDadosManuais });
+
+    if (options?.notify) {
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+        try {
+          const perm = await Notification.requestPermission();
+          setPushPermission(perm);
+        } catch {
+          // Ignore permission request error
+        }
+      }
+
+      const notif: NotificacaoManual = {
+        id: Date.now(),
+        loja: chosenLoja,
+        operador: operador || "Operador",
+        dataReferencia: chosenData,
+        dataHora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        delivery: values.delivery,
+        taxaEntrega: values.taxaEntrega,
+        couvert: values.couvert,
+        descDelivery: values.descDelivery,
+        totalLiquido: options.totalLiquido ?? 0,
+      };
+
+      lastSeenNotifIdRef.current = notif.id;
+      localStorage.setItem("caixa_last_notif_id", String(notif.id));
+      dispatchLocalAndPushAlert(notif);
+
+      saveLocalDBToStorage({
+        ...localDB,
+        dadosManuais: newDadosManuais,
+        ultimaNotificacaoManual: notif,
+      });
+    } else {
+      saveLocalDBToStorage({
+        ...localDB,
+        dadosManuais: newDadosManuais,
+      });
+    }
   };
 
   // Print voucher item receipt
@@ -1019,7 +1169,34 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleRequestPushPermission}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-soft cursor-pointer border ${
+                  pushPermission === "granted"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                    : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                }`}
+                title={
+                  pushPermission === "granted"
+                    ? "Notificações Push e Pop-up ativas neste aparelho"
+                    : "Clique para ativar notificações Push neste aparelho"
+                }
+              >
+                {pushPermission === "granted" ? (
+                  <>
+                    <BellRing className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="hidden sm:inline">Alertas Push Ativos</span>
+                  </>
+                ) : (
+                  <>
+                    <Bell className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+                    <span className="hidden sm:inline">Ativar Alertas Push</span>
+                  </>
+                )}
+              </button>
+
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className={`text-outline hover:text-secondary hover:bg-surface-container-low transition-soft p-2 rounded-xl cursor-pointer ${isSettingsOpen ? "bg-surface-container-low text-secondary" : ""}`}
@@ -2024,6 +2201,96 @@ export default function App() {
           onReimprimir={handleReimprimirHistoricoDirect}
           onReabrir={handleReabrirQualquerCaixa}
         />
+
+        {/* Real-Time Pop-up Notification Card (Manual Consolidation Broadcast) */}
+        <AnimatePresence>
+          {activePopupNotif && (
+            <motion.div
+              initial={{ opacity: 0, y: -30, x: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="fixed top-4 right-4 z-[10000] w-[92vw] max-w-sm bg-slate-900 text-white border-2 border-emerald-500/80 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BellRing className="w-4 h-4 text-white animate-bounce" />
+                  <span className="font-sans text-xs font-black uppercase tracking-wider text-white">
+                    Lançamento Manual Gravado!
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActivePopupNotif(null)}
+                  className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Fechar notificação"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3 font-sans">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase block font-bold">Loja</span>
+                    <span className="font-black text-amber-400 uppercase">{activePopupNotif.loja}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 uppercase block font-bold">Data Ref. • Hora</span>
+                    <span className="font-mono font-bold text-slate-200">
+                      {activePopupNotif.dataReferencia.split("-").reverse().join("/")} às {activePopupNotif.dataHora}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  <div>
+                    <span className="text-[9px] text-slate-400 block uppercase">Delivery Bruto</span>
+                    <span className="font-bold text-emerald-400">R$ {activePopupNotif.delivery.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block uppercase">Comissão Deliv.</span>
+                    <span className="font-bold text-rose-400">R$ {activePopupNotif.descDelivery.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block uppercase">Taxa Entrega</span>
+                    <span className="font-bold text-rose-400">R$ {activePopupNotif.taxaEntrega.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block uppercase">Gastos / Couvert</span>
+                    <span className="font-bold text-rose-400">R$ {activePopupNotif.couvert.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-xl">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                    Faturamento Líquido
+                  </span>
+                  <span className="font-mono text-sm font-black text-white">
+                    R$ {activePopupNotif.totalLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Operador: <strong className="text-slate-200">{activePopupNotif.operador}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoja(activePopupNotif.loja);
+                      setData(activePopupNotif.dataReferencia);
+                      setIsConsolidadoOpen(true);
+                      setActivePopupNotif(null);
+                    }}
+                    className="text-[10px] font-bold uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    Ver Consolidado
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Welcome Selection Modal Overlay */}
         <AnimatePresence>

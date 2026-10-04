@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from "react";
-import { X, Save, Printer, TrendingUp, TrendingDown, DollarSign, Calendar, Info, Store, FileText, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Save, Printer, TrendingUp, TrendingDown, DollarSign, Calendar, Info, Store, FileText, Check, Bell, CloudCheck, Loader2 } from "lucide-react";
 import { Venda, Lancamento, DadosManuais } from "../types";
 
 interface ModalConsolidadoProps {
@@ -18,7 +18,8 @@ interface ModalConsolidadoProps {
   onSaveDadosManuais: (
     loja: string,
     data: string,
-    values: { delivery: number; taxaEntrega: number; couvert: number; descDelivery: number }
+    values: { delivery: number; taxaEntrega: number; couvert: number; descDelivery: number },
+    options?: { notify?: boolean; totalLiquido?: number }
   ) => void;
   onPrintReport: (data: {
     loja: string;
@@ -58,6 +59,12 @@ export default function ModalConsolidado({
   const [couvert, setCouvert] = useState("");
   const [descDelivery, setDescDelivery] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [lastSavedTime, setLastSavedTime] = useState<string>("");
+
+  const isTypingRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastLoadedKeyRef = useRef<string>("");
 
   // Sync initial setup
   useEffect(() => {
@@ -65,6 +72,8 @@ export default function ModalConsolidado({
       setFiltroLoja(defaultLoja);
       setDataInicio(defaultData);
       setDataFim(defaultData);
+      setAutoSaveStatus("idle");
+      lastLoadedKeyRef.current = "";
     }
   }, [isOpen, defaultLoja, defaultData]);
 
@@ -106,9 +115,17 @@ export default function ModalConsolidado({
 
   const aggManuais = getCumulativeManuais();
 
-  // Populate inputs with the values of the start date if they match exactly (so editing works easily)
+  // Populate inputs with the values of the start date when store/date changes or remote data arrives while not typing
   useEffect(() => {
+    if (!isOpen) return;
     const singleKey = `${filtroLoja}_${dataInicio}`;
+    const keyChanged = lastLoadedKeyRef.current !== singleKey;
+
+    if (!keyChanged && isTypingRef.current) {
+      return;
+    }
+
+    lastLoadedKeyRef.current = singleKey;
     const singleData = dadosManuais[singleKey];
     if (singleData) {
       setDelivery(singleData.delivery ? String(singleData.delivery) : "");
@@ -121,8 +138,56 @@ export default function ModalConsolidado({
       setCouvert("");
       setDescDelivery("");
     }
-    setSavedSuccess(false);
+    if (keyChanged) {
+      setSavedSuccess(false);
+      setAutoSaveStatus("idle");
+    }
   }, [filtroLoja, dataInicio, dadosManuais, isOpen]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  const triggerAutoSave = (
+    nextDelivery: string,
+    nextTaxaEntrega: string,
+    nextCouvert: string,
+    nextDescDelivery: string
+  ) => {
+    if (!filtroLoja || !dataInicio || dataInicio !== dataFim) return;
+    isTypingRef.current = true;
+    setAutoSaveStatus("saving");
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      const values = {
+        delivery: parseFloat(nextDelivery.replace(",", ".")) || 0,
+        taxaEntrega: parseFloat(nextTaxaEntrega.replace(",", ".")) || 0,
+        couvert: parseFloat(nextCouvert.replace(",", ".")) || 0,
+        descDelivery: parseFloat(nextDescDelivery.replace(",", ".")) || 0,
+      };
+      onSaveDadosManuais(filtroLoja, dataInicio, values, { notify: false });
+      setAutoSaveStatus("saved");
+      setLastSavedTime(
+        new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
+      setTimeout(() => {
+        isTypingRef.current = false;
+      }, 300);
+    }, 450);
+  };
 
   if (!isOpen) return null;
 
@@ -164,18 +229,32 @@ export default function ModalConsolidado({
 
   const handleSave = () => {
     if (!filtroLoja || !dataInicio) {
-      alert("Loja e data início são obrigatórios.");
       return;
     }
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    isTypingRef.current = false;
     const values = {
       delivery: parseFloat(delivery.replace(",", ".")) || 0,
       taxaEntrega: parseFloat(taxaEntrega.replace(",", ".")) || 0,
       couvert: parseFloat(couvert.replace(",", ".")) || 0,
       descDelivery: parseFloat(descDelivery.replace(",", ".")) || 0,
     };
-    onSaveDadosManuais(filtroLoja, dataInicio, values);
+    onSaveDadosManuais(filtroLoja, dataInicio, values, {
+      notify: true,
+      totalLiquido: totalLíquido,
+    });
+    setAutoSaveStatus("saved");
+    setLastSavedTime(
+      new Date().toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    );
     setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setTimeout(() => setSavedSuccess(false), 3500);
   };
 
   const handlePrint = () => {
@@ -300,9 +379,21 @@ export default function ModalConsolidado({
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                 <span>Análise Diária Simplificada</span>
               </div>
-              <span className="opacity-80 font-mono text-[10px] uppercase">
-                {formatDateHuman(dataInicio)}
-              </span>
+              <div className="flex items-center gap-3">
+                {autoSaveStatus === "saving" && (
+                  <span className="flex items-center gap-1.5 text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Salvando automaticamente...
+                  </span>
+                )}
+                {autoSaveStatus === "saved" && (
+                  <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                    <CloudCheck className="w-3 h-3" /> Salvo automaticamente {lastSavedTime ? `às ${lastSavedTime}` : ""}
+                  </span>
+                )}
+                <span className="opacity-80 font-mono text-[10px] uppercase">
+                  {formatDateHuman(dataInicio)}
+                </span>
+              </div>
             </div>
           )}
 
@@ -374,12 +465,16 @@ export default function ModalConsolidado({
                     }`}
                     placeholder="0.00"
                     value={delivery}
-                    onChange={(e) => setDelivery(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDelivery(val);
+                      triggerAutoSave(val, taxaEntrega, couvert, descDelivery);
+                    }}
                   />
                 </div>
                 {isSingleDay && (
                   <p className="text-[9px] text-slate-400 leading-tight">
-                    * Digite as vendas de delivery para consolidação de faturamento.
+                    * Salvamento automático ativado ao digitar.
                   </p>
                 )}
               </div>
@@ -427,7 +522,11 @@ export default function ModalConsolidado({
                       }`}
                       placeholder="0.00"
                       value={descDelivery}
-                      onChange={(e) => setDescDelivery(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDescDelivery(val);
+                        triggerAutoSave(delivery, taxaEntrega, couvert, val);
+                      }}
                     />
                   </div>
 
@@ -444,7 +543,11 @@ export default function ModalConsolidado({
                       }`}
                       placeholder="0.00"
                       value={taxaEntrega}
-                      onChange={(e) => setTaxaEntrega(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTaxaEntrega(val);
+                        triggerAutoSave(delivery, val, couvert, descDelivery);
+                      }}
                     />
                   </div>
                 </div>
@@ -462,7 +565,11 @@ export default function ModalConsolidado({
                     }`}
                     placeholder="0.00"
                     value={couvert}
-                    onChange={(e) => setCouvert(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCouvert(val);
+                      triggerAutoSave(delivery, taxaEntrega, val, descDelivery);
+                    }}
                   />
                 </div>
               </div>
@@ -520,11 +627,12 @@ export default function ModalConsolidado({
           >
             {savedSuccess ? (
               <>
-                <Check className="w-4 h-4" /> Dados Gravados com Sucesso!
+                <Check className="w-4 h-4" /> Gravado e Notificação Enviada!
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" /> Gravar Lançamentos Manuais
+                <Bell className="w-3.5 h-3.5 opacity-80" />
               </>
             )}
           </button>

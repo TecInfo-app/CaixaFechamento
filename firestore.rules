@@ -29,5 +29,13 @@ service cloud.firestore {
     match /caixa_session/{sessionId} {
       allow read, write: if true;
     }
+
+    match /db_global/{docId} {
+      allow read, write: if true;
+    }
+
+    match /test/{docId} {
+      allow read, write: if true;
+    }
   }
 }
