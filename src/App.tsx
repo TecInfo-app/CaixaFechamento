@@ -29,7 +29,10 @@ import {
   ClipboardList,
   Bell,
   BellRing,
-  X
+  X,
+  Store,
+  Users,
+  ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -134,6 +137,7 @@ export default function App() {
 
   // --- Settings View State ---
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<"lojas" | "operadores" | "impressora" | null>(null);
 
   // --- Local Print Server State ---
   const [isLocalPrintEnabled, setIsLocalPrintEnabled] = useState<boolean>(() => {
@@ -1219,357 +1223,501 @@ export default function App() {
                 exit={{ opacity: 0, height: 0 }}
                 className="bg-primary-container text-white p-5 rounded-2xl shadow-xl space-y-4 overflow-hidden border border-outline-variant/25"
               >
-                <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                  <h3 className="font-sans text-xs font-black uppercase tracking-wider flex items-center gap-2 text-tertiary-fixed-dim">
-                    <Settings className="w-4 h-4" /> Configurações Gerais - Cadastro
-                  </h3>
+                <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-sans text-xs font-black uppercase tracking-wider flex items-center gap-2 text-tertiary-fixed-dim">
+                      <Settings className="w-4 h-4" /> Menu de Configurações Gerais
+                    </h3>
+                    <p className="text-[10px] text-white/50 font-sans mt-0.5">
+                      Clique em uma das opções abaixo para abrir ou recolher a configuração desejada.
+                    </p>
+                  </div>
                   <button
-                    onClick={() => setIsSettingsOpen(false)}
-                    className="text-white/60 hover:text-white transition-soft font-mono text-xs cursor-pointer"
+                    onClick={() => {
+                      setIsSettingsOpen(false);
+                      setActiveSettingsTab(null);
+                    }}
+                    className="text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-soft font-mono text-xs cursor-pointer"
                   >
                     Fechar
                   </button>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  
-                  {/* Column 1: Lojas */}
-                  <div className="md:col-span-5 space-y-2">
-                    <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
-                      GESTÃO DE LOJAS
-                    </label>
-                    <form onSubmit={handleAddLoja} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Nome da Loja..."
-                        className="flex-1 bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-medium text-white focus:border-brand-highlight"
-                        value={novaLoja}
-                        onChange={(e) => setNovaLoja(e.target.value)}
-                      />
-                      <button
-                        type="submit"
-                        className="bg-secondary hover:bg-opacity-80 w-9 h-9 rounded-xl font-bold font-sans text-xs flex items-center justify-center shrink-0 cursor-pointer text-white transition-soft"
-                        title="Adicionar Loja"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                      </button>
-                    </form>
-                    
-                    <div className="max-h-40 overflow-y-auto bg-slate-950/40 border border-slate-800/85 rounded-xl p-2.5 space-y-1">
-                      {(!localDB.lojas || localDB.lojas.length === 0) ? (
-                        <p className="text-[10px] text-white/55 italic text-center py-4">Nenhuma loja cadastrada.</p>
-                      ) : (
-                        localDB.lojas.map((l, index) => (
-                          <div key={index} className="flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs transition-soft">
-                            <span className="font-semibold text-white/95 truncate mr-2">{l}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveLoja(l)}
-                              className="text-rose-400 hover:text-error hover:bg-error-container/10 p-1 rounded transition-soft cursor-pointer shrink-0"
-                              title="Excluir Loja"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Column 2: Funcionários */}
-                  <div className="md:col-span-5 space-y-2">
-                    <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
-                      GESTÃO DE FUNCIONÁRIOS / OPERADORES
-                    </label>
-                    <form onSubmit={handleAddOperador} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Nome do Operador..."
-                        className="flex-1 bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-medium text-white focus:border-secondary"
-                        value={novoOperador}
-                        onChange={(e) => setNovoOperador(e.target.value)}
-                      />
-                      <button
-                        type="submit"
-                        className="bg-secondary hover:bg-opacity-80 w-9 h-9 rounded-xl font-bold font-sans text-xs flex items-center justify-center shrink-0 cursor-pointer text-white transition-soft"
-                        title="Adicionar Funcionário"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                      </button>
-                    </form>
-
-                    <div className="max-h-40 overflow-y-auto bg-slate-950/40 border border-slate-800/85 rounded-xl p-2.5 space-y-1">
-                      {(!localDB.operadores || localDB.operadores.length === 0) ? (
-                        <p className="text-[10px] text-white/55 italic text-center py-4">Nenhum funcionário cadastrado.</p>
-                      ) : (
-                        localDB.operadores.map((op, index) => (
-                          <div key={index} className="flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs transition-soft">
-                            <span className="font-semibold text-white/95 truncate mr-2">{op}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveOperador(op)}
-                              className="text-rose-400 hover:text-error hover:bg-error-container/10 p-1 rounded transition-soft cursor-pointer shrink-0"
-                              title="Excluir Funcionário"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Column 3: Informações */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
-                      INSTRUÇÕES
-                    </label>
-                    <div className="bg-slate-950/20 border border-slate-800 rounded-xl p-3 text-[11px] text-white/80 leading-relaxed space-y-1.5">
-                      <p className="flex items-start gap-1">
-                        <Info className="w-3.5 h-3.5 text-brand-highlight shrink-0 mt-0.5" />
-                        Cadastre as lojas e funcionários.
-                      </p>
-                      <p>
-                        Depois selecione a loja e o operador ativos na tela inicial do seu caixa.
-                      </p>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Printing Server Configuration Section */}
-                <div className="border-t border-white/10 pt-4 mt-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  <div className="md:col-span-12">
-                    <h4 className="font-sans text-xs font-black uppercase tracking-wider flex items-center gap-2 text-amber-400 mb-1">
-                      <Printer className="w-4 h-4" /> Servidor de Impressão Silenciosa (Node.js)
-                    </h4>
-                  </div>
-
-                  <div className="md:col-span-4 space-y-4">
-                    <div className="flex items-center justify-between bg-slate-900 border border-slate-800/80 p-3 rounded-xl">
+                {/* 3 Organized Category Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Botão 1: Cadastrar Lojas */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsTab(activeSettingsTab === "lojas" ? null : "lojas")}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      activeSettingsTab === "lojas"
+                        ? "bg-secondary/20 border-secondary text-white shadow-md"
+                        : "bg-slate-900/70 hover:bg-slate-900 border-slate-800 text-white/80 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${activeSettingsTab === "lojas" ? "bg-secondary text-white" : "bg-slate-800 text-amber-400"}`}>
+                        <Store className="w-4 h-4" />
+                      </div>
                       <div>
-                        <span className="text-xs font-bold block text-white">Ativar Impressão Direta</span>
-                        <span className="text-[10px] text-white/50 block">Imprime sem abrir janela do Chrome</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const val = !isLocalPrintEnabled;
-                          setIsLocalPrintEnabled(val);
-                          localStorage.setItem("is_local_print_enabled", String(val));
-                        }}
-                        className={`w-12 h-6.5 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer flex items-center ${
-                          isLocalPrintEnabled ? "bg-amber-500" : "bg-slate-700"
-                        }`}
-                      >
-                        <div
-                          className={`bg-white w-4.5 h-4.5 rounded-full shadow-md transform transition-transform duration-200 ${
-                            isLocalPrintEnabled ? "translate-x-5.5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
-                        URL DO SERVIDOR LOCAL
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          className="flex-1 bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-mono text-white focus:border-brand-highlight"
-                          placeholder="Ex: http://localhost:3010"
-                          value={localPrintServerUrl}
-                          onChange={(e) => {
-                            setLocalPrintServerUrl(e.target.value);
-                            localStorage.setItem("local_print_server_url", e.target.value);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => testPrintServerConnection(localPrintServerUrl)}
-                          className="bg-secondary hover:bg-opacity-80 px-3 h-9 rounded-xl font-black font-sans text-[10px] uppercase cursor-pointer text-white transition-soft"
-                        >
-                          Testar
-                        </button>
+                        <span className="font-sans text-xs font-black uppercase tracking-wide block">
+                          Cadastrar Lojas
+                        </span>
+                        <span className="font-mono text-[10px] text-white/50 block">
+                          {(localDB.lojas || []).length} loja(s) cadastrada(s)
+                        </span>
                       </div>
                     </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-white/60 transition-transform duration-200 ${
+                        activeSettingsTab === "lojas" ? "rotate-180 text-amber-400" : ""
+                      }`}
+                    />
+                  </button>
 
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-white/60">Status:</span>
-                      {printServerStatus === "connected" ? (
-                        <span className="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full text-[10px] uppercase">Conectado</span>
-                      ) : printServerStatus === "disconnected" ? (
-                        <span className="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/25 px-2.5 py-1 rounded-full text-[10px] uppercase">Não Detectado</span>
-                      ) : (
-                        <span className="text-white/40 font-bold bg-white/5 px-2.5 py-1 rounded-full text-[10px] uppercase">Não Testado</span>
-                      )}
-                    </div>
-
-                    <div className="space-y-3 pt-1.5 border-t border-white/5">
-                      <div className="flex items-center justify-between">
-                        <label className="font-mono text-[9px] font-bold text-slate-400 block uppercase tracking-wider">
-                          SELECIONAR IMPRESSORA TÉRMICA
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            fetchAvailablePrinters(localPrintServerUrl);
-                          }}
-                          className="text-[10px] text-amber-400 hover:underline cursor-pointer flex items-center gap-1 font-sans"
-                        >
-                          🔄 Atualizar Lista
-                        </button>
+                  {/* Botão 2: Funcionários / Operadores */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsTab(activeSettingsTab === "operadores" ? null : "operadores")}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      activeSettingsTab === "operadores"
+                        ? "bg-secondary/20 border-secondary text-white shadow-md"
+                        : "bg-slate-900/70 hover:bg-slate-900 border-slate-800 text-white/80 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${activeSettingsTab === "operadores" ? "bg-secondary text-white" : "bg-slate-800 text-teal-400"}`}>
+                        <Users className="w-4 h-4" />
                       </div>
-
-                      {needsUpdateLocalServer ? (
-                        <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-[11px] text-rose-300 leading-relaxed space-y-1.5 font-sans">
-                          <p className="font-bold">🚨 Atualize o Script do Servidor no seu PC!</p>
-                          <p>
-                            Seu servidor local está rodando uma <strong>versão antiga</strong> que não possui o recurso de listar impressoras.
-                          </p>
-                          <p className="text-white/80">
-                            <strong>Como corrigir:</strong>
-                          </p>
-                          <ol className="list-decimal list-inside space-y-1 text-slate-300">
-                            <li>Pare o servidor atual apertando <kbd className="bg-slate-950 px-1 py-0.5 rounded text-[10px] text-rose-400 font-mono">Ctrl + C</kbd> no seu terminal/prompt.</li>
-                            <li>Copie o novo script <code className="bg-slate-950 px-1 py-0.5 text-amber-400 font-mono">local-print-server.js</code> do seu projeto (veja as instruções ao lado).</li>
-                            <li>Inicie o servidor de novo: <code className="bg-slate-950 px-1.5 py-0.5 text-emerald-400 font-mono">node local-print-server.js</code>.</li>
-                          </ol>
-                        </div>
-                      ) : availablePrinters.length > 0 ? (
-                        <div className="space-y-2">
-                          <select
-                            className="w-full bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-sans text-white focus:border-amber-500"
-                            value={selectedPrinter}
-                            onChange={(e) => {
-                              setSelectedPrinter(e.target.value);
-                              localStorage.setItem("selected_printer", e.target.value);
-                            }}
-                          >
-                            <option value="">-- Impressora Padrão do Sistema --</option>
-                            {availablePrinters.map((printer) => (
-                              <option key={printer} value={printer}>
-                                🖨️ {printer}
-                              </option>
-                            ))}
-                          </select>
-                          <p className="text-[10px] text-white/50 leading-relaxed font-sans">
-                            Se a impressora que deseja usar está listada acima, selecione-a. Caso contrário, você pode digitar o nome dela no campo abaixo.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 leading-relaxed space-y-1 font-sans">
-                          <p className="font-bold text-amber-400">⚠️ Nenhuma impressora detectada automaticamente ainda.</p>
-                          <p>Você pode digitar o nome exato dela no campo abaixo ou clicar em "Atualizar Lista" quando o servidor estiver rodando.</p>
-                        </div>
-                      )}
-
-                      <div className="space-y-1.5">
-                        <label className="font-mono text-[9px] font-bold text-slate-400 block uppercase tracking-wider">
-                          OU DIGITE O NOME EXATO DA IMPRESSORA:
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-mono text-white focus:border-amber-500"
-                          placeholder="Ex: Bematech, EPSON TM-T20, POS-80"
-                          value={selectedPrinter}
-                          onChange={(e) => {
-                            setSelectedPrinter(e.target.value);
-                            localStorage.setItem("selected_printer", e.target.value);
-                          }}
-                        />
-                        <p className="text-[10px] text-white/40 font-sans">
-                          Salvo automaticamente: <span className="text-amber-400 font-mono">{selectedPrinter || "Nenhuma (Padrão do Sistema)"}</span>
-                        </p>
+                      <div>
+                        <span className="font-sans text-xs font-black uppercase tracking-wide block">
+                          Funcionários / Operadores
+                        </span>
+                        <span className="font-mono text-[10px] text-white/50 block">
+                          {(localDB.operadores || []).length} operador(es)
+                        </span>
                       </div>
                     </div>
-                  </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-white/60 transition-transform duration-200 ${
+                        activeSettingsTab === "operadores" ? "rotate-180 text-teal-400" : ""
+                      }`}
+                    />
+                  </button>
 
-                  <div className="md:col-span-8 bg-slate-950/40 border border-slate-800/85 rounded-xl p-4 md:p-5 space-y-4">
-                    <h5 className="font-sans text-[11px] font-black uppercase text-amber-300 tracking-wider flex items-center gap-1.5">
-                      💡 CONFIGURAÇÃO DO SERVIDOR DE IMPRESSÃO TÉRMICA
-                    </h5>
-                    
-                    {/* Opções de Download */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      {/* Opção 1: Executável Direto */}
-                      <div className="bg-slate-900/60 border border-amber-500/20 rounded-xl p-3 flex flex-col justify-between space-y-3">
-                        <div>
-                          <span className="text-[9px] font-mono font-bold bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
-                            Método Fácil (Recomendado)
-                          </span>
-                          <h6 className="font-sans text-[12px] font-bold text-white mt-2 flex items-center gap-1.5">
-                            ⚡ Servidor Pronto (Windows)
-                          </h6>
-                          <p className="text-[10px] text-white/60 leading-normal mt-1 font-sans">
-                            Executável direto <code className="font-mono text-amber-400">.exe</code> de apenas um clique. Não precisa instalar o Node.js nem digitar comandos!
-                          </p>
-                        </div>
-                        <a
-                          href="/local-print-server.exe"
-                          download="local-print-server.exe"
-                          className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-center text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/5 cursor-pointer font-sans"
-                        >
-                          📥 Baixar Executável (Windows)
-                        </a>
+                  {/* Botão 3: Configurações de Impressora */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsTab(activeSettingsTab === "impressora" ? null : "impressora")}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      activeSettingsTab === "impressora"
+                        ? "bg-amber-500/20 border-amber-400 text-white shadow-md"
+                        : "bg-slate-900/70 hover:bg-slate-900 border-slate-800 text-white/80 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${activeSettingsTab === "impressora" ? "bg-amber-500 text-slate-950" : "bg-slate-800 text-amber-400"}`}>
+                        <Printer className="w-4 h-4" />
                       </div>
-
-                      {/* Opção 2: Script Node.js */}
-                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-3">
-                        <div>
-                          <span className="text-[9px] font-mono font-bold bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
-                            Método Manual
-                          </span>
-                          <h6 className="font-sans text-[12px] font-bold text-white mt-2 flex items-center gap-1.5">
-                            🛠️ Script Node.js
-                          </h6>
-                          <p className="text-[10px] text-white/60 leading-normal mt-1 font-sans">
-                            Se preferir, use o script <code className="font-mono text-slate-300">.js</code> nativo e execute no seu terminal usando o Node.js.
-                          </p>
-                        </div>
-                        <a
-                          href="/local-print-server.js"
-                          download="local-print-server.js"
-                          className="w-full bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700/60 text-slate-200 font-semibold text-center text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer font-sans"
-                        >
-                          📄 Baixar Código (.js)
-                        </a>
+                      <div>
+                        <span className="font-sans text-xs font-black uppercase tracking-wide block">
+                          Config. de Impressora
+                        </span>
+                        <span className="font-mono text-[10px] text-white/50 block">
+                          {isLocalPrintEnabled ? "Impressão Direta Ativa" : "Impressão Padrão"}
+                        </span>
                       </div>
                     </div>
-
-                    <div className="border-t border-white/5 pt-3 space-y-2">
-                      <p className="text-[11px] font-bold text-white/90 font-sans">Como usar o servidor de impressão no seu PC:</p>
-                      
-                      {/* Passos de Configuração */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10.5px] text-white/70 font-sans leading-relaxed">
-                        <div className="space-y-1.5">
-                          <p className="font-semibold text-amber-400 flex items-center gap-1">
-                            <span>1️⃣</span> Se usar o Executável (.exe):
-                          </p>
-                          <ul className="list-disc list-inside pl-1 space-y-1 text-white/60">
-                            <li>Baixe e salve o <code className="text-white">local-print-server.exe</code> no seu computador.</li>
-                            <li>Dê dois cliques para abrir. Uma janela preta do prompt abrirá indicando que o servidor está ativo.</li>
-                            <li>Deixe-o rodando minimizado enquanto usa o sistema!</li>
-                          </ul>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="font-semibold text-slate-400 flex items-center gap-1">
-                            <span>2️⃣</span> Se usar o Script (.js):
-                          </p>
-                          <ul className="list-disc list-inside pl-1 space-y-1 text-white/60">
-                            <li>Instale o Node.js no seu computador.</li>
-                            <li>Abra o terminal na pasta do arquivo e digite:</li>
-                            <li className="list-none bg-slate-950 p-1.5 rounded font-mono text-[9px] text-emerald-300 mt-1 select-all">
-                              npm install express cors<br/>
-                              node local-print-server.js
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-white/60 transition-transform duration-200 ${
+                        activeSettingsTab === "impressora" ? "rotate-180 text-amber-400" : ""
+                      }`}
+                    />
+                  </button>
                 </div>
+
+                {/* ABA 1: GESTÃO DE LOJAS */}
+                <AnimatePresence mode="wait">
+                  {activeSettingsTab === "lojas" && (
+                    <motion.div
+                      key="tab-lojas"
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      className="border-t border-white/10 pt-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-start"
+                    >
+                      <div className="md:col-span-8 space-y-2">
+                        <label className="font-mono text-[10px] font-bold text-amber-400 block uppercase tracking-wider">
+                          🏪 CADASTRAR E GERENCIAR LOJAS
+                        </label>
+                        <form onSubmit={handleAddLoja} className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Digite o nome da nova loja..."
+                            className="flex-1 bg-slate-900 border border-slate-700/60 p-2.5 h-10 text-xs rounded-xl outline-none font-medium text-white focus:border-brand-highlight"
+                            value={novaLoja}
+                            onChange={(e) => setNovaLoja(e.target.value)}
+                          />
+                          <button
+                            type="submit"
+                            className="bg-secondary hover:bg-opacity-80 px-4 h-10 rounded-xl font-bold font-sans text-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer text-white transition-soft"
+                            title="Adicionar Loja"
+                          >
+                            <PlusCircle className="w-4 h-4" /> Adicionar
+                          </button>
+                        </form>
+
+                        <div className="max-h-48 overflow-y-auto bg-slate-950/40 border border-slate-800/85 rounded-xl p-2.5 space-y-1.5">
+                          {(!localDB.lojas || localDB.lojas.length === 0) ? (
+                            <p className="text-[10px] text-white/55 italic text-center py-4">Nenhuma loja cadastrada.</p>
+                          ) : (
+                            localDB.lojas.map((l, index) => (
+                              <div key={index} className="flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs transition-soft">
+                                <span className="font-semibold text-white/95 truncate mr-2">{l}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveLoja(l)}
+                                  className="text-rose-400 hover:text-error hover:bg-error-container/10 p-1 rounded transition-soft cursor-pointer shrink-0"
+                                  title="Excluir Loja"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-4 space-y-2">
+                        <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
+                          INSTRUÇÕES
+                        </label>
+                        <div className="bg-slate-950/20 border border-slate-800 rounded-xl p-3.5 text-[11px] text-white/80 leading-relaxed space-y-1.5">
+                          <p className="flex items-start gap-1.5">
+                            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                            <span>Adicione ou remova unidades/lojas do sistema.</span>
+                          </p>
+                          <p className="text-white/60">
+                            As lojas cadastradas aqui ficam disponíveis imediatamente para seleção na tela principal e nos relatórios consolidados.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ABA 2: GESTÃO DE FUNCIONÁRIOS / OPERADORES */}
+                  {activeSettingsTab === "operadores" && (
+                    <motion.div
+                      key="tab-operadores"
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      className="border-t border-white/10 pt-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-start"
+                    >
+                      <div className="md:col-span-8 space-y-2">
+                        <label className="font-mono text-[10px] font-bold text-teal-400 block uppercase tracking-wider">
+                          👥 CADASTRAR E GERENCIAR FUNCIONÁRIOS / OPERADORES
+                        </label>
+                        <form onSubmit={handleAddOperador} className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Digite o nome do funcionário / operador..."
+                            className="flex-1 bg-slate-900 border border-slate-700/60 p-2.5 h-10 text-xs rounded-xl outline-none font-medium text-white focus:border-secondary"
+                            value={novoOperador}
+                            onChange={(e) => setNovoOperador(e.target.value)}
+                          />
+                          <button
+                            type="submit"
+                            className="bg-secondary hover:bg-opacity-80 px-4 h-10 rounded-xl font-bold font-sans text-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer text-white transition-soft"
+                            title="Adicionar Funcionário"
+                          >
+                            <PlusCircle className="w-4 h-4" /> Adicionar
+                          </button>
+                        </form>
+
+                        <div className="max-h-48 overflow-y-auto bg-slate-950/40 border border-slate-800/85 rounded-xl p-2.5 space-y-1.5">
+                          {(!localDB.operadores || localDB.operadores.length === 0) ? (
+                            <p className="text-[10px] text-white/55 italic text-center py-4">Nenhum funcionário cadastrado.</p>
+                          ) : (
+                            localDB.operadores.map((op, index) => (
+                              <div key={index} className="flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs transition-soft">
+                                <span className="font-semibold text-white/95 truncate mr-2">{op}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOperador(op)}
+                                  className="text-rose-400 hover:text-error hover:bg-error-container/10 p-1 rounded transition-soft cursor-pointer shrink-0"
+                                  title="Excluir Funcionário"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-4 space-y-2">
+                        <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
+                          INSTRUÇÕES
+                        </label>
+                        <div className="bg-slate-950/20 border border-slate-800 rounded-xl p-3.5 text-[11px] text-white/80 leading-relaxed space-y-1.5">
+                          <p className="flex items-start gap-1.5">
+                            <Info className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+                            <span>Cadastre os operadores responsáveis pelo caixa.</span>
+                          </p>
+                          <p className="text-white/60">
+                            O nome do operador selecionado sairá impresso nos relatórios de fechamento de turno e nos alertas enviados.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ABA 3: CONFIGURAÇÕES DE IMPRESSORA */}
+                  {activeSettingsTab === "impressora" && (
+                    <motion.div
+                      key="tab-impressora"
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18 }}
+                      className="border-t border-white/10 pt-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-start"
+                    >
+                      <div className="md:col-span-12">
+                        <h4 className="font-sans text-xs font-black uppercase tracking-wider flex items-center gap-2 text-amber-400 mb-1">
+                          <Printer className="w-4 h-4" /> Servidor de Impressão Silenciosa (Node.js)
+                        </h4>
+                      </div>
+
+                      <div className="md:col-span-4 space-y-4">
+                        <div className="flex items-center justify-between bg-slate-900 border border-slate-800/80 p-3 rounded-xl">
+                          <div>
+                            <span className="text-xs font-bold block text-white">Ativar Impressão Direta</span>
+                            <span className="text-[10px] text-white/50 block">Imprime sem abrir janela do Chrome</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = !isLocalPrintEnabled;
+                              setIsLocalPrintEnabled(val);
+                              localStorage.setItem("is_local_print_enabled", String(val));
+                            }}
+                            className={`w-12 h-6.5 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer flex items-center ${
+                              isLocalPrintEnabled ? "bg-amber-500" : "bg-slate-700"
+                            }`}
+                          >
+                            <div
+                              className={`bg-white w-4.5 h-4.5 rounded-full shadow-md transform transition-transform duration-200 ${
+                                isLocalPrintEnabled ? "translate-x-5.5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="font-mono text-[9px] font-bold text-on-primary-container block uppercase tracking-wider">
+                            URL DO SERVIDOR LOCAL
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              className="flex-1 bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-mono text-white focus:border-brand-highlight"
+                              placeholder="Ex: http://localhost:3010"
+                              value={localPrintServerUrl}
+                              onChange={(e) => {
+                                setLocalPrintServerUrl(e.target.value);
+                                localStorage.setItem("local_print_server_url", e.target.value);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => testPrintServerConnection(localPrintServerUrl)}
+                              className="bg-secondary hover:bg-opacity-80 px-3 h-9 rounded-xl font-black font-sans text-[10px] uppercase cursor-pointer text-white transition-soft"
+                            >
+                              Testar
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-white/60">Status:</span>
+                          {printServerStatus === "connected" ? (
+                            <span className="text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full text-[10px] uppercase">Conectado</span>
+                          ) : printServerStatus === "disconnected" ? (
+                            <span className="text-rose-400 font-bold bg-rose-500/10 border border-rose-500/25 px-2.5 py-1 rounded-full text-[10px] uppercase">Não Detectado</span>
+                          ) : (
+                            <span className="text-white/40 font-bold bg-white/5 px-2.5 py-1 rounded-full text-[10px] uppercase">Não Testado</span>
+                          )}
+                        </div>
+
+                        <div className="space-y-3 pt-1.5 border-t border-white/5">
+                          <div className="flex items-center justify-between">
+                            <label className="font-mono text-[9px] font-bold text-slate-400 block uppercase tracking-wider">
+                              SELECIONAR IMPRESSORA TÉRMICA
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                fetchAvailablePrinters(localPrintServerUrl);
+                              }}
+                              className="text-[10px] text-amber-400 hover:underline cursor-pointer flex items-center gap-1 font-sans"
+                            >
+                              🔄 Atualizar Lista
+                            </button>
+                          </div>
+
+                          {needsUpdateLocalServer ? (
+                            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-[11px] text-rose-300 leading-relaxed space-y-1.5 font-sans">
+                              <p className="font-bold">🚨 Atualize o Script do Servidor no seu PC!</p>
+                              <p>
+                                Seu servidor local está rodando uma <strong>versão antiga</strong> que não possui o recurso de listar impressoras.
+                              </p>
+                              <p className="text-white/80">
+                                <strong>Como corrigir:</strong>
+                              </p>
+                              <ol className="list-decimal list-inside space-y-1 text-slate-300">
+                                <li>Pare o servidor atual apertando <kbd className="bg-slate-950 px-1 py-0.5 rounded text-[10px] text-rose-400 font-mono">Ctrl + C</kbd> no seu terminal/prompt.</li>
+                                <li>Copie o novo script <code className="bg-slate-950 px-1 py-0.5 text-amber-400 font-mono">local-print-server.js</code> do seu projeto (veja as instruções ao lado).</li>
+                                <li>Inicie o servidor de novo: <code className="bg-slate-950 px-1.5 py-0.5 text-emerald-400 font-mono">node local-print-server.js</code>.</li>
+                              </ol>
+                            </div>
+                          ) : availablePrinters.length > 0 ? (
+                            <div className="space-y-2">
+                              <select
+                                className="w-full bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-sans text-white focus:border-amber-500"
+                                value={selectedPrinter}
+                                onChange={(e) => {
+                                  setSelectedPrinter(e.target.value);
+                                  localStorage.setItem("selected_printer", e.target.value);
+                                }}
+                              >
+                                <option value="">-- Impressora Padrão do Sistema --</option>
+                                {availablePrinters.map((printer) => (
+                                  <option key={printer} value={printer}>
+                                    🖨️ {printer}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-[10px] text-white/50 leading-relaxed font-sans">
+                                Se a impressora que deseja usar está listada acima, selecione-a. Caso contrário, você pode digitar o nome dela no campo abaixo.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 leading-relaxed space-y-1 font-sans">
+                              <p className="font-bold text-amber-400">⚠️ Nenhuma impressora detectada automaticamente ainda.</p>
+                              <p>Você pode digitar o nome exato dela no campo abaixo ou clicar em "Atualizar Lista" quando o servidor estiver rodando.</p>
+                            </div>
+                          )}
+
+                          <div className="space-y-1.5">
+                            <label className="font-mono text-[9px] font-bold text-slate-400 block uppercase tracking-wider">
+                              OU DIGITE O NOME EXATO DA IMPRESSORA:
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full bg-slate-900 border border-slate-700/60 p-2 h-9 text-xs rounded-xl outline-none font-mono text-white focus:border-amber-500"
+                              placeholder="Ex: Bematech, EPSON TM-T20, POS-80"
+                              value={selectedPrinter}
+                              onChange={(e) => {
+                                setSelectedPrinter(e.target.value);
+                                localStorage.setItem("selected_printer", e.target.value);
+                              }}
+                            />
+                            <p className="text-[10px] text-white/40 font-sans">
+                              Salvo automaticamente: <span className="text-amber-400 font-mono">{selectedPrinter || "Nenhuma (Padrão do Sistema)"}</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-8 bg-slate-950/40 border border-slate-800/85 rounded-xl p-4 md:p-5 space-y-4">
+                        <h5 className="font-sans text-[11px] font-black uppercase text-amber-300 tracking-wider flex items-center gap-1.5">
+                          💡 CONFIGURAÇÃO DO SERVIDOR DE IMPRESSÃO TÉRMICA
+                        </h5>
+                        
+                        {/* Opções de Download */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          {/* Opção 1: Executável Direto */}
+                          <div className="bg-slate-900/60 border border-amber-500/20 rounded-xl p-3 flex flex-col justify-between space-y-3">
+                            <div>
+                              <span className="text-[9px] font-mono font-bold bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                                Método Fácil (Recomendado)
+                              </span>
+                              <h6 className="font-sans text-[12px] font-bold text-white mt-2 flex items-center gap-1.5">
+                                ⚡ Servidor Pronto (Windows)
+                              </h6>
+                              <p className="text-[10px] text-white/60 leading-normal mt-1 font-sans">
+                                Executável direto <code className="font-mono text-amber-400">.exe</code> de apenas um clique. Não precisa instalar o Node.js nem digitar comandos!
+                              </p>
+                            </div>
+                            <a
+                              href="/local-print-server.exe"
+                              download="local-print-server.exe"
+                              className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-center text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/5 cursor-pointer font-sans"
+                            >
+                              📥 Baixar Executável (Windows)
+                            </a>
+                          </div>
+
+                          {/* Opção 2: Script Node.js */}
+                          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-3">
+                            <div>
+                              <span className="text-[9px] font-mono font-bold bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                                Método Manual
+                              </span>
+                              <h6 className="font-sans text-[12px] font-bold text-white mt-2 flex items-center gap-1.5">
+                                🛠️ Script Node.js
+                              </h6>
+                              <p className="text-[10px] text-white/60 leading-normal mt-1 font-sans">
+                                Se preferir, use o script <code className="font-mono text-slate-300">.js</code> nativo e execute no seu terminal usando o Node.js.
+                              </p>
+                            </div>
+                            <a
+                              href="/local-print-server.js"
+                              download="local-print-server.js"
+                              className="w-full bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700/60 text-slate-200 font-semibold text-center text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer font-sans"
+                            >
+                              📄 Baixar Código (.js)
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-white/5 pt-3 space-y-2">
+                          <p className="text-[11px] font-bold text-white/90 font-sans">Como usar o servidor de impressão no seu PC:</p>
+                          
+                          {/* Passos de Configuração */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10.5px] text-white/70 font-sans leading-relaxed">
+                            <div className="space-y-1.5">
+                              <p className="font-semibold text-amber-400 flex items-center gap-1">
+                                <span>1️⃣</span> Se usar o Executável (.exe):
+                              </p>
+                              <ul className="list-disc list-inside pl-1 space-y-1 text-white/60">
+                                <li>Baixe e salve o <code className="text-white">local-print-server.exe</code> no seu computador.</li>
+                                <li>Dê dois cliques para abrir. Uma janela preta do prompt abrirá indicando que o servidor está ativo.</li>
+                                <li>Deixe-o rodando minimizado enquanto usa o sistema!</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-1.5">
+                              <p className="font-semibold text-slate-400 flex items-center gap-1">
+                                <span>2️⃣</span> Se usar o Script (.js):
+                              </p>
+                              <ul className="list-disc list-inside pl-1 space-y-1 text-white/60">
+                                <li>Instale o Node.js no seu computador.</li>
+                                <li>Abra o terminal na pasta do arquivo e digite:</li>
+                                <li className="list-none bg-slate-950 p-1.5 rounded font-mono text-[9px] text-emerald-300 mt-1 select-all">
+                                  npm install express cors<br/>
+                                  node local-print-server.js
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
               </motion.section>
             )}
