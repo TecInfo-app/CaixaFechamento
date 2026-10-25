@@ -356,7 +356,7 @@ export default function App() {
         await getDocFromServer(doc(db, "test", "connection"));
       } catch (error) {
         if (error instanceof Error && error.message.includes("the client is offline")) {
-          console.error("Please check your Firebase configuration or internet connection.");
+          console.error("Please check your Firebase configuration.");
         }
       }
     }
