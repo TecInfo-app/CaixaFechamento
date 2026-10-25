@@ -60,30 +60,175 @@ import ModalFecharCaixa from "./components/ModalFecharCaixa";
 import ModalHistoricoFechamentos from "./components/ModalHistoricoFechamentos";
 import PrintAreaElement from "./components/PrintAreaElement";
 
-export default function App() {
-  // --- Standard UI and Config State ---
-  const [loja, setLoja] = useState<string>("Loja Matriz");
-  const [operador, setOperador] = useState<string>("Operador");
-  const [novaLoja, setNovaLoja] = useState<string>("");
-  const [novoOperador, setNovoOperador] = useState<string>("");
-  const [data, setData] = useState<string>("");
-  const [turno, setTurno] = useState<ShiftType>("Dia");
-  const [saldoFinalInput, setSaldoFinalInput] = useState<string>("");
+// Helper function to safely merge local and remote DBs without wiping entries
+function mergeLocalDBs(local: LocalDB, remote: LocalDB): LocalDB {
+  const lojasSet = new Set([...(local.lojas || []), ...(remote.lojas || [])]);
+  const lojas = lojasSet.size > 0 ? Array.from(lojasSet) : ["Loja Matriz", "Filial Centro", "Filial Shopping"];
 
-  // --- Core Cache Database (LocalDB definition) ---
-  const [localDB, setLocalDB] = useState<LocalDB>({
-    vendas: [],
-    lancamentos: [],
-    dadosManuais: {},
-    historicoFechamentos: []
+  const operadoresSet = new Set([...(local.operadores || []), ...(remote.operadores || [])]);
+  const operadores = operadoresSet.size > 0 ? Array.from(operadoresSet) : ["Operador", "Gerente", "Operador Noite"];
+
+  const lancamentosMap = new Map<number, Lancamento>();
+  (remote.lancamentos || []).forEach((l) => { if (l && l.id) lancamentosMap.set(l.id, l); });
+  (local.lancamentos || []).forEach((l) => { if (l && l.id) lancamentosMap.set(l.id, l); });
+  const lancamentos = Array.from(lancamentosMap.values()).sort((a, b) => a.id - b.id);
+
+  const vendasMap = new Map<number, Venda>();
+  (remote.vendas || []).forEach((v) => { if (v && v.id) vendasMap.set(v.id, v); });
+  (local.vendas || []).forEach((v) => { if (v && v.id) vendasMap.set(v.id, v); });
+  const vendas = Array.from(vendasMap.values()).sort((a, b) => a.id - b.id);
+
+  const fechamentosMap = new Map<number, Fechamento>();
+  (remote.historicoFechamentos || []).forEach((h) => { if (h && h.id) fechamentosMap.set(h.id, h); });
+  (local.historicoFechamentos || []).forEach((h) => { if (h && h.id) fechamentosMap.set(h.id, h); });
+  const historicoFechamentos = Array.from(fechamentosMap.values()).sort((a, b) => a.id - b.id);
+
+  const dadosManuais = { ...(remote.dadosManuais || {}), ...(local.dadosManuais || {}) };
+
+  const notifRemote = remote.ultimaNotificacaoManual;
+  const notifLocal = local.ultimaNotificacaoManual;
+  let ultimaNotificacaoManual = notifRemote;
+  if (!ultimaNotificacaoManual || (notifLocal && notifLocal.id > (notifRemote?.id || 0))) {
+    ultimaNotificacaoManual = notifLocal;
+  }
+
+  return {
+    lojas,
+    operadores,
+    lancamentos,
+    vendas,
+    historicoFechamentos,
+    dadosManuais,
+    ultimaNotificacaoManual
+  };
+}
+
+// Helper to safely merge cashier shift sessions without losing local transactions
+function mergeCaixaSessions(local: CaixaTurno, remote: CaixaTurno): CaixaTurno {
+  const lancamentosMap = new Map<number, Lancamento>();
+  (remote.lancamentos || []).forEach((l) => { if (l && l.id) lancamentosMap.set(l.id, l); });
+  (local.lancamentos || []).forEach((l) => { if (l && l.id) lancamentosMap.set(l.id, l); });
+  const lancamentos = Array.from(lancamentosMap.values()).sort((a, b) => a.id - b.id);
+
+  const vendasMap = new Map<number, Venda>();
+  (remote.vendas || []).forEach((v) => { if (v && v.id) vendasMap.set(v.id, v); });
+  (local.vendas || []).forEach((v) => { if (v && v.id) vendasMap.set(v.id, v); });
+  const vendas = Array.from(vendasMap.values()).sort((a, b) => a.id - b.id);
+
+  const aberto = remote.aberto ?? local.aberto;
+  const saldoInicial = (remote.saldoInicial !== undefined && remote.saldoInicial !== 0)
+    ? remote.saldoInicial
+    : (local.saldoInicial ?? 0);
+
+  return {
+    lancamentos,
+    vendas,
+    saldoInicial,
+    aberto
+  };
+}
+
+export default function App() {
+  // --- Persistent UI and Shift Selection State ---
+  const [data, setData] = useState<string>(() => {
+    const saved = localStorage.getItem("caixa_active_data");
+    if (saved) return saved;
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
 
-  // --- Current Active Session State ---
-  const [caixaTurno, setCaixaTurno] = useState<CaixaTurno>({
-    lancamentos: [],
-    vendas: [],
-    saldoInicial: 0,
-    aberto: false
+  const [loja, setLoja] = useState<string>(() => {
+    return localStorage.getItem("caixa_active_loja") || "Loja Matriz";
+  });
+
+  const [operador, setOperador] = useState<string>(() => {
+    return localStorage.getItem("caixa_active_operador") || "Operador";
+  });
+
+  const [turno, setTurno] = useState<ShiftType>(() => {
+    return (localStorage.getItem("caixa_active_turno") as ShiftType) || "Dia";
+  });
+
+  const [novaLoja, setNovaLoja] = useState<string>("");
+  const [novoOperador, setNovoOperador] = useState<string>("");
+  const [saldoFinalInput, setSaldoFinalInput] = useState<string>("");
+
+  // Handlers for switching store, operator, turn and date that immediately persist
+  const handleSelectLoja = (newL: string) => {
+    setLoja(newL);
+    localStorage.setItem("caixa_active_loja", newL);
+  };
+  const handleSelectOperador = (newOp: string) => {
+    setOperador(newOp);
+    localStorage.setItem("caixa_active_operador", newOp);
+  };
+  const handleSelectTurno = (newT: ShiftType) => {
+    setTurno(newT);
+    localStorage.setItem("caixa_active_turno", newT);
+  };
+  const handleSelectData = (newD: string) => {
+    setData(newD);
+    localStorage.setItem("caixa_active_data", newD);
+  };
+
+  // --- Core Cache Database (LocalDB definition) with immediate localStorage hydration ---
+  const [localDB, setLocalDB] = useState<LocalDB>(() => {
+    const savedDB = localStorage.getItem("caixa_local_db");
+    if (savedDB) {
+      try {
+        const parsed = JSON.parse(savedDB);
+        return {
+          vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
+          lancamentos: Array.isArray(parsed.lancamentos) ? parsed.lancamentos : [],
+          dadosManuais: parsed.dadosManuais || {},
+          historicoFechamentos: Array.isArray(parsed.historicoFechamentos) ? parsed.historicoFechamentos : [],
+          lojas: parsed.lojas && parsed.lojas.length > 0 ? parsed.lojas : ["Loja Matriz", "Filial Centro", "Filial Shopping"],
+          operadores: parsed.operadores && parsed.operadores.length > 0 ? parsed.operadores : ["Operador", "Gerente", "Operador Noite"],
+          ultimaNotificacaoManual: parsed.ultimaNotificacaoManual
+        };
+      } catch (err) {
+        console.error("Erro ao carregar banco local do localStorage", err);
+      }
+    }
+    return {
+      vendas: [],
+      lancamentos: [],
+      dadosManuais: {},
+      historicoFechamentos: [],
+      lojas: ["Loja Matriz", "Filial Centro", "Filial Shopping"],
+      operadores: ["Operador", "Gerente", "Operador Noite"]
+    };
+  });
+
+  // --- Current Active Shift Session with immediate localStorage hydration ---
+  const [caixaTurno, setCaixaTurno] = useState<CaixaTurno>(() => {
+    const initLoja = localStorage.getItem("caixa_active_loja") || "Loja Matriz";
+    const initTurno = (localStorage.getItem("caixa_active_turno") as ShiftType) || "Dia";
+    const initData = localStorage.getItem("caixa_active_data") || (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    })();
+    const sessionKey = `caixa_session_${initLoja}_${initData}_${initTurno}`;
+    const saved = localStorage.getItem(sessionKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as CaixaTurno;
+        return {
+          lancamentos: Array.isArray(parsed.lancamentos) ? parsed.lancamentos : [],
+          vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
+          saldoInicial: parsed.saldoInicial || 0,
+          aberto: !!parsed.aberto
+        };
+      } catch (e) {
+        console.warn("Erro ao carregar sessão inicial", e);
+      }
+    }
+    return {
+      lancamentos: [],
+      vendas: [],
+      saldoInicial: 0,
+      aberto: false
+    };
   });
 
   // --- Modal Visibility State ---
@@ -153,8 +298,10 @@ export default function App() {
   const [availablePrinters, setAvailablePrinters] = useState<string[]>([]);
   const [needsUpdateLocalServer, setNeedsUpdateLocalServer] = useState<boolean>(false);
 
-  // --- Welcome Screen Selection Modal ---
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+  // --- Welcome Screen Selection Modal (only opens on first launch or via header button) ---
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState<boolean>(() => {
+    return localStorage.getItem("caixa_welcome_dismissed") !== "true";
+  });
 
   // --- Real-time Pop-up & Push Notification State ---
   const [activePopupNotif, setActivePopupNotif] = useState<NotificacaoManual | null>(null);
@@ -309,12 +456,8 @@ export default function App() {
     }
   };
 
-  // Initialize dates, test Firestore connection and register real-time listeners on mount
+  // Initialize dates, load configurations and register real-time listeners on mount
   useEffect(() => {
-    const now = new Date();
-    const hoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    setData(hoje);
-
     // Load Local DB from LocalStorage
     const savedDB = localStorage.getItem("caixa_local_db");
     let dbParsed: LocalDB = {
@@ -330,10 +473,13 @@ export default function App() {
       try {
         const parsed = JSON.parse(savedDB);
         dbParsed = {
-          ...dbParsed,
-          ...parsed,
+          vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
+          lancamentos: Array.isArray(parsed.lancamentos) ? parsed.lancamentos : [],
+          dadosManuais: parsed.dadosManuais || {},
+          historicoFechamentos: Array.isArray(parsed.historicoFechamentos) ? parsed.historicoFechamentos : [],
           lojas: parsed.lojas && parsed.lojas.length > 0 ? parsed.lojas : dbParsed.lojas,
-          operadores: parsed.operadores && parsed.operadores.length > 0 ? parsed.operadores : dbParsed.operadores
+          operadores: parsed.operadores && parsed.operadores.length > 0 ? parsed.operadores : dbParsed.operadores,
+          ultimaNotificacaoManual: parsed.ultimaNotificacaoManual
         };
       } catch (err) {
         console.error("Erro ao carregar banco local do localStorage", err);
@@ -343,39 +489,57 @@ export default function App() {
     setLocalDB(dbParsed);
     localStorage.setItem("caixa_local_db", JSON.stringify(dbParsed));
 
-    if (dbParsed.lojas && dbParsed.lojas.length > 0) {
+    // Ensure store selection is consistent with registered stores
+    const savedLoja = localStorage.getItem("caixa_active_loja");
+    if (savedLoja && dbParsed.lojas?.includes(savedLoja)) {
+      setLoja(savedLoja);
+    } else if (dbParsed.lojas && dbParsed.lojas.length > 0 && !loja) {
       setLoja(dbParsed.lojas[0]);
-    }
-    if (dbParsed.operadores && dbParsed.operadores.length > 0) {
-      setOperador(dbParsed.operadores[0]);
+      localStorage.setItem("caixa_active_loja", dbParsed.lojas[0]);
     }
 
-    // Check Firebase connection
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, "test", "connection"));
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("the client is offline")) {
-          console.error("Please check your Firebase configuration.");
-        }
-      }
+    const savedOperador = localStorage.getItem("caixa_active_operador");
+    if (savedOperador && dbParsed.operadores?.includes(savedOperador)) {
+      setOperador(savedOperador);
+    } else if (dbParsed.operadores && dbParsed.operadores.length > 0 && !operador) {
+      setOperador(dbParsed.operadores[0]);
+      localStorage.setItem("caixa_active_operador", dbParsed.operadores[0]);
     }
-    testConnection();
+
     testPrintServerConnection();
 
-    // Subscribe to/observe global DB in Firestore
+    // Subscribe to/observe global DB in Firestore with non-destructive merge
     const unsubLocalDB = onSnapshot(
       doc(db, "db_global", "local_db"),
       (docSnap) => {
         if (docSnap.exists()) {
           const remoteDB = docSnap.data() as LocalDB;
-          setLocalDB(remoteDB);
-          localStorage.setItem("caixa_local_db", JSON.stringify(remoteDB));
+
+          // Merge remote with current local data so nothing is erased
+          const savedCurrentRaw = localStorage.getItem("caixa_local_db");
+          let currentLocal: LocalDB = dbParsed;
+          if (savedCurrentRaw) {
+            try {
+              currentLocal = JSON.parse(savedCurrentRaw);
+            } catch {}
+          }
+
+          const mergedDB = mergeLocalDBs(currentLocal, remoteDB);
+          setLocalDB(mergedDB);
+          localStorage.setItem("caixa_local_db", JSON.stringify(mergedDB));
+
+          // If local had new entries not yet in remote, sync to Firestore
+          const localCount = (mergedDB.lancamentos?.length || 0) + (mergedDB.vendas?.length || 0);
+          const remoteCount = (remoteDB.lancamentos?.length || 0) + (remoteDB.vendas?.length || 0);
+          if (localCount > remoteCount) {
+            setDoc(doc(db, "db_global", "local_db"), JSON.parse(JSON.stringify(mergedDB))).catch((err) => {
+              console.warn("Aviso ao sincronizar dados locais para Firestore:", err);
+            });
+          }
 
           const incomingNotif = remoteDB.ultimaNotificacaoManual;
           if (incomingNotif && incomingNotif.id) {
             if (isFirstSnapshotRef.current) {
-              // On initial boot, mark current remote notification as seen unless it was emitted in the last 6 seconds
               const isBrandNew = Date.now() - incomingNotif.id < 6000;
               if (isBrandNew && incomingNotif.id > lastSeenNotifIdRef.current) {
                 lastSeenNotifIdRef.current = incomingNotif.id;
@@ -394,14 +558,14 @@ export default function App() {
           isFirstSnapshotRef.current = false;
         } else {
           isFirstSnapshotRef.current = false;
-          // Push initial defaults to newly created Firestore DB
+          // Push initial local defaults to newly created Firestore DB
           setDoc(doc(db, "db_global", "local_db"), JSON.parse(JSON.stringify(dbParsed))).catch((error) => {
-            handleFirestoreError(error, OperationType.WRITE, "db_global/local_db");
+            console.warn("Aviso ao inicializar db_global no Firestore:", error);
           });
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, "db_global/local_db");
+        console.warn("Aviso de sincronização db_global Firestore (operando com cache local seguro):", error);
       }
     );
 
@@ -410,52 +574,115 @@ export default function App() {
     };
   }, []);
 
-  // Sync Shift Session with Firestore and LocalStorage
+  // Sync Shift Session with Firestore and LocalStorage safely
   useEffect(() => {
     if (!data || !loja || !turno) return;
 
     const docId = `${loja}_${data}_${turno}`;
+    const sessionKey = `caixa_session_${loja}_${data}_${turno}`;
+
+    // Read current local state from localStorage immediately
+    const savedLocalSessionRaw = localStorage.getItem(sessionKey);
+    let currentLocalSession: CaixaTurno = {
+      lancamentos: [],
+      vendas: [],
+      saldoInicial: 0,
+      aberto: false
+    };
+
+    if (savedLocalSessionRaw) {
+      try {
+        const parsed = JSON.parse(savedLocalSessionRaw) as CaixaTurno;
+        currentLocalSession = {
+          lancamentos: Array.isArray(parsed.lancamentos) ? parsed.lancamentos : [],
+          vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
+          saldoInicial: parsed.saldoInicial || 0,
+          aberto: !!parsed.aberto
+        };
+        setCaixaTurno(currentLocalSession);
+      } catch (err) {
+        console.error("Erro ao carregar sessão caixa", err);
+      }
+    }
 
     const unsubSession = onSnapshot(
       doc(db, "caixa_session", docId),
       (docSnap) => {
         if (docSnap.exists()) {
           const remoteSession = docSnap.data() as CaixaTurno;
-          setCaixaTurno(remoteSession);
-          localStorage.setItem(`caixa_session_${loja}_${data}_${turno}`, JSON.stringify(remoteSession));
+
+          // Re-read latest localStorage to not lose offline changes
+          const latestLocalRaw = localStorage.getItem(sessionKey);
+          let latestLocal = currentLocalSession;
+          if (latestLocalRaw) {
+            try {
+              latestLocal = JSON.parse(latestLocalRaw);
+            } catch {}
+          }
+
+          const mergedSession = mergeCaixaSessions(latestLocal, remoteSession);
+
+          // Also cross-verify with localDB.lancamentos to recover any transactions matching this store, date, and shift
+          const localDBMatchingLancamentos = (localDB.lancamentos || []).filter(
+            (l) => l.loja === loja && l.data === data && l.turno === turno
+          );
+          if (localDBMatchingLancamentos.length > 0) {
+            const mergedMap = new Map<number, Lancamento>();
+            (mergedSession.lancamentos || []).forEach((l) => mergedMap.set(l.id, l));
+            localDBMatchingLancamentos.forEach((l) => mergedMap.set(l.id, l));
+            mergedSession.lancamentos = Array.from(mergedMap.values()).sort((a, b) => a.id - b.id);
+          }
+
+          setCaixaTurno(mergedSession);
+          localStorage.setItem(sessionKey, JSON.stringify(mergedSession));
+
+          // If local has more entries than remote, sync back to Firestore
+          const localItemsCount = (mergedSession.lancamentos?.length || 0) + (mergedSession.vendas?.length || 0);
+          const remoteItemsCount = (remoteSession.lancamentos?.length || 0) + (remoteSession.vendas?.length || 0);
+          if (localItemsCount > remoteItemsCount) {
+            setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(mergedSession))).catch((err) => {
+              console.warn(`Aviso ao atualizar sessão ${docId} no Firestore:`, err);
+            });
+          }
         } else {
-          // If no remote session, try local storage
-          const sessionKey = `caixa_session_${loja}_${data}_${turno}`;
+          // If no remote session, verify if local storage has session data
           const savedSession = localStorage.getItem(sessionKey);
           if (savedSession) {
             try {
               const parsed = JSON.parse(savedSession) as CaixaTurno;
               setCaixaTurno(parsed);
               setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(parsed))).catch((error) => {
-                handleFirestoreError(error, OperationType.WRITE, `caixa_session/${docId}`);
+                console.warn(`Aviso ao inicializar sessão remota ${docId}:`, error);
               });
             } catch (err) {
               console.error("Erro ao carregar sessão caixa", err);
             }
           } else {
-            // Lazy initialize a completely new session
-            const emptySession: CaixaTurno = {
-              lancamentos: [],
-              vendas: [],
+            // Check if localDB has any entries for this store, date, and shift
+            const localDBMatchingLancamentos = (localDB.lancamentos || []).filter(
+              (l) => l.loja === loja && l.data === data && l.turno === turno
+            );
+            const localDBMatchingVendas = (localDB.vendas || []).filter(
+              (v) => v.loja === loja && v.data === data && v.turno === turno
+            );
+
+            const initialSession: CaixaTurno = {
+              lancamentos: localDBMatchingLancamentos,
+              vendas: localDBMatchingVendas,
               saldoInicial: 0,
-              aberto: false
+              aberto: localDBMatchingLancamentos.length > 0 || localDBMatchingVendas.length > 0
             };
-            setCaixaTurno(emptySession);
+            setCaixaTurno(initialSession);
             setSaldoFinalInput("");
-            localStorage.setItem(sessionKey, JSON.stringify(emptySession));
-            setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(emptySession))).catch((error) => {
-              handleFirestoreError(error, OperationType.WRITE, `caixa_session/${docId}`);
+            localStorage.setItem(sessionKey, JSON.stringify(initialSession));
+            setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(initialSession))).catch((error) => {
+              console.warn(`Aviso ao criar nova sessão ${docId}:`, error);
             });
           }
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, `caixa_session/${docId}`);
+        console.warn(`Aviso de leitura Firestore caixa_session/${docId} (operando com cache local seguro):`, error);
       }
     );
 
@@ -471,7 +698,7 @@ export default function App() {
     try {
       await setDoc(doc(db, "db_global", "local_db"), JSON.parse(JSON.stringify(newDB)));
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, "db_global/local_db");
+      console.warn("Aviso ao salvar db_global no Firestore (dados salvos localmente):", error);
     }
   };
 
@@ -484,7 +711,7 @@ export default function App() {
       const docId = `${loja}_${data}_${turno}`;
       await setDoc(doc(db, "caixa_session", docId), JSON.parse(JSON.stringify(newSession)));
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `caixa_session/${loja}_${data}_${turno}`);
+      console.warn(`Aviso ao sincronizar sessão ${loja}_${data}_${turno} no Firestore (dados salvos localmente):`, error);
     }
   };
 
@@ -622,11 +849,11 @@ export default function App() {
       return;
     }
 
-    // 1. Update the active store, operator, date, and shift parameters
-    setLoja(fechamento.loja);
-    setOperador(fechamento.operador);
-    setData(fechamento.data);
-    setTurno(fechamento.turno);
+    // 1. Update the active store, operator, date, and shift parameters with persistence
+    handleSelectLoja(fechamento.loja);
+    handleSelectOperador(fechamento.operador);
+    handleSelectData(fechamento.data);
+    handleSelectTurno(fechamento.turno);
 
     // 2. Prepare the reopened session
     const reabertoCaixa: CaixaTurno = {
@@ -1069,6 +1296,12 @@ export default function App() {
 
     const updatedLancamentos = [...(localDB.lancamentos || []), newLancamento];
     saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
+
+    // Also update current active session if it matches the current store and date
+    if (lojaNome === loja) {
+      const updatedSessionLancamentos = [...(caixaTurno.lancamentos || []), newLancamento];
+      saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
+    }
   };
 
   // Add new Store
@@ -1199,6 +1432,15 @@ export default function App() {
                     <span className="hidden sm:inline">Ativar Alertas Push</span>
                   </>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsWelcomeModalOpen(true)}
+                className="text-outline hover:text-secondary hover:bg-surface-container-low transition-soft p-2 rounded-xl cursor-pointer"
+                title="Tela Inicial / Mudar de Módulo"
+              >
+                <Briefcase className="w-[18px] h-[18px]" />
               </button>
 
               <button
@@ -1732,7 +1974,7 @@ export default function App() {
               <select
                 className="w-full bg-slate-950 border-b border-outline outline-none text-xs font-bold text-brand-highlight font-sans py-1.5 focus:border-white transition-soft cursor-pointer capitalize"
                 value={loja}
-                onChange={(e) => setLoja(e.target.value)}
+                onChange={(e) => handleSelectLoja(e.target.value)}
               >
                 {(localDB.lojas || []).map((l, index) => (
                   <option key={index} value={l} className="bg-slate-950 text-white">
@@ -1748,7 +1990,7 @@ export default function App() {
               <select
                 className="w-full bg-slate-950 border-b border-outline outline-none text-xs font-bold text-white font-mono py-1.5 focus:border-white transition-soft cursor-pointer"
                 value={operador}
-                onChange={(e) => setOperador(e.target.value)}
+                onChange={(e) => handleSelectOperador(e.target.value)}
               >
                 {(localDB.operadores || []).map((op, index) => (
                   <option key={index} value={op} className="bg-slate-950 text-white font-mono">
@@ -1765,7 +2007,7 @@ export default function App() {
                 type="date"
                 className="w-full bg-transparent border-b border-outline outline-none font-mono text-xs text-white uppercase py-1 focus:border-white transition-soft"
                 value={data}
-                onChange={(e) => setData(e.target.value)}
+                onChange={(e) => handleSelectData(e.target.value)}
               />
             </div>
             <div>
@@ -1775,7 +2017,7 @@ export default function App() {
               <select
                 className="w-full bg-slate-950 border-b border-outline outline-none text-xs font-medium text-white font-sans py-1.5 focus:border-white transition-soft cursor-pointer"
                 value={turno}
-                onChange={(e) => setTurno(e.target.value as ShiftType)}
+                onChange={(e) => handleSelectTurno(e.target.value as ShiftType)}
               >
                 <option value="Dia">🌞 Turno Dia</option>
                 <option value="Noite">🌚 Turno Noite</option>
@@ -2425,8 +2667,8 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      setLoja(activePopupNotif.loja);
-                      setData(activePopupNotif.dataReferencia);
+                      handleSelectLoja(activePopupNotif.loja);
+                      handleSelectData(activePopupNotif.dataReferencia);
                       setIsConsolidadoOpen(true);
                       setActivePopupNotif(null);
                     }}
@@ -2466,7 +2708,10 @@ export default function App() {
                   {/* Option A: Open Cashier Terminal */}
                   <button
                     type="button"
-                    onClick={() => setIsWelcomeModalOpen(false)}
+                    onClick={() => {
+                      localStorage.setItem("caixa_welcome_dismissed", "true");
+                      setIsWelcomeModalOpen(false);
+                    }}
                     className="w-full text-left p-4 bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/45 rounded-2xl cursor-pointer transition-all duration-200 active:scale-[0.98] group flex items-start gap-4"
                   >
                     <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl group-hover:bg-amber-500 group-hover:text-slate-900 transition-all">
@@ -2486,6 +2731,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
+                      localStorage.setItem("caixa_welcome_dismissed", "true");
                       setIsWelcomeModalOpen(false);
                       setIsConsolidadoOpen(true);
                     }}
