@@ -337,10 +337,8 @@ export default function App() {
   const [availablePrinters, setAvailablePrinters] = useState<string[]>([]);
   const [needsUpdateLocalServer, setNeedsUpdateLocalServer] = useState<boolean>(false);
 
-  // --- Welcome Screen Selection Modal (only opens on first launch or via header button) ---
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState<boolean>(() => {
-    return localStorage.getItem("caixa_welcome_dismissed") !== "true";
-  });
+  // --- Welcome Screen Selection Modal (always opens when loading/opening the app) ---
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState<boolean>(true);
 
   // --- Real-time Pop-up & Push Notification State ---
   const [activePopupNotif, setActivePopupNotif] = useState<NotificacaoManual | null>(null);
@@ -2915,7 +2913,6 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      localStorage.setItem("caixa_welcome_dismissed", "true");
                       setIsWelcomeModalOpen(false);
                     }}
                     className="w-full text-left p-4 bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/45 rounded-2xl cursor-pointer transition-all duration-200 active:scale-[0.98] group flex items-start gap-4"
@@ -2937,7 +2934,6 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      localStorage.setItem("caixa_welcome_dismissed", "true");
                       setIsWelcomeModalOpen(false);
                       setIsConsolidadoOpen(true);
                     }}
