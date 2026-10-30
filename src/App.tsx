@@ -74,7 +74,40 @@ const DEFAULT_OPERADORES = [
   "MARCELA"
 ];
 
-// Helper function to safely merge local and remote DBs without wiping entries
+// Persistent registry of deleted IDs to prevent cloud merge from resurrecting deleted entries
+function getDeletedLancamentoIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem("caixa_deleted_lancamento_ids");
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function addDeletedLancamentoId(id: string | number) {
+  try {
+    const set = getDeletedLancamentoIds();
+    set.add(String(id));
+    localStorage.setItem("caixa_deleted_lancamento_ids", JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+function getDeletedVendaIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem("caixa_deleted_venda_ids");
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function addDeletedVendaId(id: string | number) {
+  try {
+    const set = getDeletedVendaIds();
+    set.add(String(id));
+    localStorage.setItem("caixa_deleted_venda_ids", JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+// Helper function to safely merge local and remote DBs without wiping entries or resurrecting deleted ones
 function mergeLocalDBs(local: LocalDB, remote: LocalDB): LocalDB {
   // Filter out any obsolete dummy stores like "Loja Matriz" or "Filial Centro"
   const cleanFilter = (s: string) => !["Loja Matriz", "Filial Centro", "Filial Shopping"].includes(s);
@@ -90,15 +123,33 @@ function mergeLocalDBs(local: LocalDB, remote: LocalDB): LocalDB {
   const operadoresSet = new Set([...cleanRemoteOps, ...cleanLocalOps]);
   const operadores = operadoresSet.size > 0 ? Array.from(operadoresSet) : DEFAULT_OPERADORES;
 
-  const lancamentosMap = new Map<number, Lancamento>();
-  (remote.lancamentos || []).forEach((l) => { if (l && l.id) lancamentosMap.set(l.id, l); });
-  (local.lancamentos || []).forEach((l) => { if (l && l.id && !lancamentosMap.has(l.id)) lancamentosMap.set(l.id, l); });
-  const lancamentos = Array.from(lancamentosMap.values()).sort((a, b) => a.id - b.id);
+  const deletedLancamentos = getDeletedLancamentoIds();
+  const lancamentosMap = new Map<string, Lancamento>();
+  (remote.lancamentos || []).forEach((l) => {
+    if (l && l.id && !deletedLancamentos.has(String(l.id))) {
+      lancamentosMap.set(String(l.id), l);
+    }
+  });
+  (local.lancamentos || []).forEach((l) => {
+    if (l && l.id && !deletedLancamentos.has(String(l.id)) && !lancamentosMap.has(String(l.id))) {
+      lancamentosMap.set(String(l.id), l);
+    }
+  });
+  const lancamentos = Array.from(lancamentosMap.values()).sort((a, b) => Number(a.id) - Number(b.id));
 
-  const vendasMap = new Map<number, Venda>();
-  (remote.vendas || []).forEach((v) => { if (v && v.id) vendasMap.set(v.id, v); });
-  (local.vendas || []).forEach((v) => { if (v && v.id && !vendasMap.has(v.id)) vendasMap.set(v.id, v); });
-  const vendas = Array.from(vendasMap.values()).sort((a, b) => a.id - b.id);
+  const deletedVendas = getDeletedVendaIds();
+  const vendasMap = new Map<string, Venda>();
+  (remote.vendas || []).forEach((v) => {
+    if (v && v.id && !deletedVendas.has(String(v.id))) {
+      vendasMap.set(String(v.id), v);
+    }
+  });
+  (local.vendas || []).forEach((v) => {
+    if (v && v.id && !deletedVendas.has(String(v.id)) && !vendasMap.has(String(v.id))) {
+      vendasMap.set(String(v.id), v);
+    }
+  });
+  const vendas = Array.from(vendasMap.values()).sort((a, b) => Number(a.id) - Number(b.id));
 
   const fechamentosMap = new Map<number, Fechamento>();
   (remote.historicoFechamentos || []).forEach((h) => { if (h && h.id) fechamentosMap.set(h.id, h); });
@@ -125,17 +176,35 @@ function mergeLocalDBs(local: LocalDB, remote: LocalDB): LocalDB {
   };
 }
 
-// Helper to safely merge cashier shift sessions without losing local transactions
+// Helper to safely merge cashier shift sessions without losing local transactions or resurrecting deleted ones
 function mergeCaixaSessions(local: CaixaTurno, remote: CaixaTurno): CaixaTurno {
-  const lancamentosMap = new Map<number, Lancamento>();
-  (remote.lancamentos || []).forEach((l) => { if (l && l.id) lancamentosMap.set(l.id, l); });
-  (local.lancamentos || []).forEach((l) => { if (l && l.id && !lancamentosMap.has(l.id)) lancamentosMap.set(l.id, l); });
-  const lancamentos = Array.from(lancamentosMap.values()).sort((a, b) => a.id - b.id);
+  const deletedLancamentos = getDeletedLancamentoIds();
+  const lancamentosMap = new Map<string, Lancamento>();
+  (remote.lancamentos || []).forEach((l) => {
+    if (l && l.id && !deletedLancamentos.has(String(l.id))) {
+      lancamentosMap.set(String(l.id), l);
+    }
+  });
+  (local.lancamentos || []).forEach((l) => {
+    if (l && l.id && !deletedLancamentos.has(String(l.id)) && !lancamentosMap.has(String(l.id))) {
+      lancamentosMap.set(String(l.id), l);
+    }
+  });
+  const lancamentos = Array.from(lancamentosMap.values()).sort((a, b) => Number(a.id) - Number(b.id));
 
-  const vendasMap = new Map<number, Venda>();
-  (remote.vendas || []).forEach((v) => { if (v && v.id) vendasMap.set(v.id, v); });
-  (local.vendas || []).forEach((v) => { if (v && v.id && !vendasMap.has(v.id)) vendasMap.set(v.id, v); });
-  const vendas = Array.from(vendasMap.values()).sort((a, b) => a.id - b.id);
+  const deletedVendas = getDeletedVendaIds();
+  const vendasMap = new Map<string, Venda>();
+  (remote.vendas || []).forEach((v) => {
+    if (v && v.id && !deletedVendas.has(String(v.id))) {
+      vendasMap.set(String(v.id), v);
+    }
+  });
+  (local.vendas || []).forEach((v) => {
+    if (v && v.id && !deletedVendas.has(String(v.id)) && !vendasMap.has(String(v.id))) {
+      vendasMap.set(String(v.id), v);
+    }
+  });
+  const vendas = Array.from(vendasMap.values()).sort((a, b) => Number(a.id) - Number(b.id));
 
   const aberto = remote.aberto ?? local.aberto;
   const saldoInicial = (remote.saldoInicial !== undefined && remote.saldoInicial !== 0)
@@ -475,7 +544,7 @@ export default function App() {
   };
 
   const tryLocalPrint = async (htmlToPrint: string) => {
-    if (!isLocalPrintEnabled) return false;
+    if (!isLocalPrintEnabled || printServerStatus === "disconnected") return false;
     try {
       const response = await fetch(`${localPrintServerUrl}/print`, {
         method: "POST",
@@ -487,8 +556,8 @@ export default function App() {
       });
       const data = await response.json();
       return !!data.success;
-    } catch (err) {
-      console.warn("Falha ao enviar impressão silenciosa ao servidor local:", err);
+    } catch {
+      setPrintServerStatus("disconnected");
       return false;
     }
   };
@@ -715,16 +784,17 @@ export default function App() {
           const mergedSession = mergeCaixaSessions(latestLocal, remoteSession);
 
           // Also cross-verify with localDB.lancamentos to recover any transactions matching this store, date, and shift
+          const delLancIds = getDeletedLancamentoIds();
           const localDBMatchingLancamentos = (localDB.lancamentos || []).filter(
-            (l) => l.loja === loja && l.data === data && l.turno === turno
+            (l) => l.loja === loja && l.data === data && l.turno === turno && !delLancIds.has(String(l.id))
           );
           if (localDBMatchingLancamentos.length > 0) {
-            const mergedMap = new Map<number, Lancamento>();
-            (mergedSession.lancamentos || []).forEach((l) => mergedMap.set(l.id, l));
+            const mergedMap = new Map<string, Lancamento>();
+            (mergedSession.lancamentos || []).forEach((l) => mergedMap.set(String(l.id), l));
             localDBMatchingLancamentos.forEach((l) => {
-              if (!mergedMap.has(l.id)) mergedMap.set(l.id, l);
+              if (!mergedMap.has(String(l.id))) mergedMap.set(String(l.id), l);
             });
-            mergedSession.lancamentos = Array.from(mergedMap.values()).sort((a, b) => a.id - b.id);
+            mergedSession.lancamentos = Array.from(mergedMap.values()).sort((a, b) => Number(a.id) - Number(b.id));
           }
 
           setCaixaTurno(mergedSession);
@@ -1054,10 +1124,12 @@ export default function App() {
   };
 
   const handleExcluirVenda = (id: number) => {
-    const updatedVendas = (localDB.vendas || []).filter((v) => v.id !== id);
+    addDeletedVendaId(id);
+
+    const updatedVendas = (localDB.vendas || []).filter((v) => String(v.id) !== String(id));
     saveLocalDBToStorage({ ...localDB, vendas: updatedVendas });
 
-    const updatedSessionVendas = (caixaTurno.vendas || []).filter((v) => v.id !== id);
+    const updatedSessionVendas = (caixaTurno.vendas || []).filter((v) => String(v.id) !== String(id));
     saveSessionToStorage({ ...caixaTurno, vendas: updatedSessionVendas });
   };
 
@@ -1073,13 +1145,13 @@ export default function App() {
       // --- UPDATE EXISTING ENTRY ---
       // Update in LocalDB
       const updatedLancamentos = (localDB.lancamentos || []).map((l) =>
-        l.id === id ? { ...l, descricao, valor, tipo, observacao } : l
+        String(l.id) === String(id) ? { ...l, descricao, valor, tipo, observacao } : l
       );
       saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
 
       // Update in active session
       const updatedSessionLancamentos = (caixaTurno.lancamentos || []).map((l) =>
-        l.id === id ? { ...l, descricao, valor, tipo, observacao } : l
+        String(l.id) === String(id) ? { ...l, descricao, valor, tipo, observacao } : l
       );
       saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
     } else {
@@ -1109,10 +1181,12 @@ export default function App() {
   const handleExcluirLancamento = (id: number) => {
     if (!confirm("Tem certeza de que deseja excluir este lançamento?")) return;
 
-    const updatedLancamentos = (localDB.lancamentos || []).filter((l) => l.id !== id);
+    addDeletedLancamentoId(id);
+
+    const updatedLancamentos = (localDB.lancamentos || []).filter((l) => String(l.id) !== String(id));
     saveLocalDBToStorage({ ...localDB, lancamentos: updatedLancamentos });
 
-    const updatedSessionLancamentos = (caixaTurno.lancamentos || []).filter((l) => l.id !== id);
+    const updatedSessionLancamentos = (caixaTurno.lancamentos || []).filter((l) => String(l.id) !== String(id));
     saveSessionToStorage({ ...caixaTurno, lancamentos: updatedSessionLancamentos });
   };
 
