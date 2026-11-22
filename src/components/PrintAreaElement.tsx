@@ -496,6 +496,13 @@ export default function PrintAreaElement({
                   </div>
                 );
               }
+              if (l.kind === "empty") {
+                return (
+                  <div key={i} className="h-4 leading-4">
+                    &nbsp;
+                  </div>
+                );
+              }
               if (l.raw && l.raw.trim() !== "") {
                 return (
                   <div key={i} className="text-[11px] break-words">

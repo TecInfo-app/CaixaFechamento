@@ -11,12 +11,13 @@ import {
   Check,
   Minus,
   X,
-  CornerDownLeft,
   RotateCcw,
   GripHorizontal,
   Maximize2,
   Minimize2,
-  Printer
+  Printer,
+  Sun,
+  Moon
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PrintCalculadoraData, PrintCalculadoraLinha } from "../types";
@@ -53,6 +54,7 @@ interface TapeCalculatorProps {
 }
 
 const STORAGE_KEY = "caixa_tape_calculator_v1";
+const THEME_STORAGE_KEY = "caixa_tape_calc_theme";
 
 function uid() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -255,6 +257,14 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isAllSelected, setIsAllSelected] = useState<boolean>(false);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === "light" || saved === "dark") return saved;
+    } catch {}
+    return "dark";
+  });
+  const isLight = theme === "light";
 
   // Tape rows with localStorage persistence
   const [rows, setRows] = useState<TapeRow[]>(() => {
@@ -279,6 +289,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
 
   // Focus & active line tracking
   const [activeRowId, setActiveRowId] = useState<string>(() => rows[rows.length - 1]?.id || "");
+  const calcContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const commentRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -293,12 +304,18 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     origY: number;
   } | null>(null);
 
-  // Persist automatically
+  // Persist tape and theme automatically
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
     } catch {}
   }, [rows]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {}
+  }, [theme]);
 
   // Evaluate entire tape dynamically
   const { evaluated, currentRunning, hasPendingOps, hasDivZeroError } = useMemo(
@@ -313,11 +330,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     }, 1800);
   }, []);
 
-  // Helper to commit a state transition with undo history
+  // Helper to commit a state transition with character-level undo history
   const commitRows = useCallback(
     (nextRows: TapeRow[], recordUndo = true) => {
       if (recordUndo) {
-        setUndoStack((prev) => [...prev.slice(-39), rows]);
+        setUndoStack((prev) => [...prev.slice(-499), rows]);
         setRedoStack([]);
       }
       setIsAllSelected(false);
@@ -325,24 +342,6 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     },
     [rows]
   );
-
-  const handleUndo = useCallback(() => {
-    if (undoStack.length === 0) return;
-    const prev = undoStack[undoStack.length - 1];
-    setRedoStack((r) => [...r, rows]);
-    setUndoStack((u) => u.slice(0, -1));
-    setIsAllSelected(false);
-    setRows(prev);
-  }, [undoStack, rows]);
-
-  const handleRedo = useCallback(() => {
-    if (redoStack.length === 0) return;
-    const next = redoStack[redoStack.length - 1];
-    setUndoStack((u) => [...u, rows]);
-    setRedoStack((r) => r.slice(0, -1));
-    setIsAllSelected(false);
-    setRows(next);
-  }, [redoStack, rows]);
 
   // Focus row programmatically — only sets caret position when explicitly requested
   const focusRow = useCallback((id: string, cursorPos?: number, focusComment = false) => {
@@ -359,6 +358,66 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
       }
     });
   }, []);
+
+  const restoreFocusAfterHistory = useCallback(
+    (targetRows: TapeRow[], fromRows: TapeRow[]) => {
+      let targetRow: TapeRow | undefined;
+      let focusComment = false;
+
+      for (let i = 0; i < targetRows.length; i++) {
+        const t = targetRows[i];
+        const old = fromRows.find((r) => r.id === t.id);
+        if (!old || old.raw !== t.raw) {
+          targetRow = t;
+          if (old && t.type === "entry") {
+            const pt = parseTapeLine(t.raw);
+            const po = parseTapeLine(old.raw);
+            if (pt.kind === "calc" && po.kind === "calc" && pt.comment !== po.comment && pt.numStr === po.numStr) {
+              focusComment = true;
+            }
+          }
+          break;
+        }
+      }
+
+      if (!targetRow) {
+        targetRow =
+          targetRows.find((r) => r.id === activeRowId && r.type === "entry") ||
+          [...targetRows].reverse().find((r) => r.type === "entry");
+      }
+
+      if (targetRow && targetRow.type === "entry") {
+        const p = parseTapeLine(targetRow.raw);
+        const pos = focusComment
+          ? (p.comment || "").length
+          : p.kind === "calc"
+          ? (p.numStr || "").length
+          : targetRow.raw.length;
+        setTimeout(() => focusRow(targetRow!.id, pos, focusComment), 0);
+      }
+    },
+    [activeRowId, focusRow]
+  );
+
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    const prev = undoStack[undoStack.length - 1];
+    setRedoStack((r) => [...r, rows]);
+    setUndoStack((u) => u.slice(0, -1));
+    setIsAllSelected(false);
+    setRows(prev);
+    restoreFocusAfterHistory(prev, rows);
+  }, [undoStack, rows, restoreFocusAfterHistory]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack((u) => [...u.slice(-499), rows]);
+    setRedoStack((r) => r.slice(0, -1));
+    setIsAllSelected(false);
+    setRows(next);
+    restoreFocusAfterHistory(next, rows);
+  }, [redoStack, rows, restoreFocusAfterHistory]);
 
   // Focus last editable row when opening
   useEffect(() => {
@@ -404,11 +463,15 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
   }, [buildTapePlainText, flashStatus]);
 
   const handleClearAll = useCallback(() => {
+    if (rows.length === 1 && rows[0].type === "entry" && rows[0].raw === "") {
+      focusRow(rows[0].id, 0);
+      return;
+    }
     const freshId = uid();
     commitRows([{ id: freshId, type: "entry", raw: "" }]);
     flashStatus("Fita limpa!");
     setTimeout(() => focusRow(freshId, 0), 20);
-  }, [commitRows, flashStatus, focusRow]);
+  }, [rows, commitRows, flashStatus, focusRow]);
 
   const handlePrint = useCallback(() => {
     const linhas: PrintCalculadoraLinha[] = evaluated
@@ -416,10 +479,10 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
         if (row.type === "divider" || row.type === "total") return true;
         if (row.parsed?.hasOperatorOnly) return false;
         const trimmed = row.raw.trim();
-        if (!trimmed || trimmed === DEFAULT_INTRO_TEXT) return false;
+        if (trimmed === DEFAULT_INTRO_TEXT) return false;
         return true;
       })
-      .map((row) => {
+      .map((row): PrintCalculadoraLinha => {
         if (row.type === "divider") {
           return { type: "divider" };
         }
@@ -441,12 +504,27 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
             comment: row.parsed.comment || ""
           };
         }
+        if (row.raw.trim() === "") {
+          return {
+            type: "entry",
+            kind: "empty"
+          };
+        }
         return {
           type: "entry",
           kind: "text",
           raw: row.raw
         };
       });
+
+    // Keep all skipped blank lines inside/above the tape, stripping only trailing waiting empty lines at the very bottom
+    while (
+      linhas.length > 0 &&
+      linhas[linhas.length - 1].type === "entry" &&
+      linhas[linhas.length - 1].kind === "empty"
+    ) {
+      linhas.pop();
+    }
 
     onPrintTape({
       loja: loja || "TERMINAL DE CAIXA",
@@ -460,6 +538,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
   // Global window shortcuts while calculator is OPEN:
   // - Alt + I -> Print tape
   // - Esc -> Clear all
+  // - Ctrl + Z / Ctrl + Shift + Z / Ctrl + Y -> Character-by-character Undo / Redo
   // - Ctrl + C / Backspace / Delete (when isAllSelected)
   useEffect(() => {
     if (!isOpen) return;
@@ -477,6 +556,29 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
         e.stopPropagation();
         handleClearAll();
         return;
+      }
+
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isExternalInput =
+        activeEl &&
+        ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName) &&
+        !calcContainerRef.current?.contains(activeEl);
+
+      if (!isExternalInput && (e.ctrlKey || e.metaKey)) {
+        const keyLower = e.key.toLowerCase();
+        if (keyLower === "z") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.shiftKey) handleRedo();
+          else handleUndo();
+          return;
+        }
+        if (keyLower === "y") {
+          e.preventDefault();
+          e.stopPropagation();
+          handleRedo();
+          return;
+        }
       }
 
       if (isAllSelected) {
@@ -499,7 +601,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     return () => {
       window.removeEventListener("keydown", handleGlobalCalcKeys, true);
     };
-  }, [isOpen, isAllSelected, handlePrint, handleClearAll, handleCopyAllTape]);
+  }, [isOpen, isAllSelected, handlePrint, handleClearAll, handleCopyAllTape, handleUndo, handleRedo]);
 
   // Dragging handlers for desktop floating header
   useEffect(() => {
@@ -568,14 +670,14 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
         ? `${parsed.op} `
         : `${parsed.op} ${parsed.numStr}${parsed.comment ? ` ${parsed.comment}` : ""}`;
       const updated = rows.map((r) => (r.id === id ? { ...r, raw: normalized } : r));
-      setRows(updated);
+      commitRows(updated);
       // Focus aligned number input immediately without timeout
       focusRow(id, (parsed.numStr || "").length);
       return;
     }
 
     const updated = rows.map((r) => (r.id === id ? { ...r, raw: value } : r));
-    setRows(updated);
+    commitRows(updated);
   };
 
   // Format number cleanly when leaving the number input (e.g. 10 -> 10,00)
@@ -658,7 +760,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     if (/^\s*[+\-*/×÷−]\s*$/.test(newNumVal)) {
       const switchedOp = normalizeOp(newNumVal.trim());
       const updated = rows.map((r) => (r.id === id ? { ...r, raw: `${switchedOp} ` } : r));
-      setRows(updated);
+      commitRows(updated);
       return;
     }
 
@@ -673,7 +775,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
           ? { ...r, raw: `${op} ${numOnly} ${nextComment}` }
           : r
       );
-      setRows(updated);
+      commitRows(updated);
       setTimeout(() => focusRow(id, typedAfterSpace.length, true), 10);
       return;
     }
@@ -684,14 +786,14 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
         ? `${op} `
         : `${op} ${newNumVal}${comment ? ` ${comment}` : ""}`;
       const updated = rows.map((r) => (r.id === id ? { ...r, raw: nextRaw } : r));
-      setRows(updated);
+      commitRows(updated);
       return;
     }
 
     // 6. User typed letters directly -> if comment was empty and no explicit non-plus op, convert to text
     const combinedText = `${newNumVal}${comment ? ` ${comment}` : ""}`;
     const updated = rows.map((r) => (r.id === id ? { ...r, raw: combinedText } : r));
-    setRows(updated);
+    commitRows(updated);
   };
 
   // Handler for the aligned Comment <input> (to the right of the number column)
@@ -702,7 +804,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
         ? { ...r, raw: newComment === "" ? `${op} ${numStr}` : `${op} ${numStr} ${newComment}` }
         : r
     );
-    setRows(updated);
+    commitRows(updated);
   };
 
   const insertTotalAtActive = () => {
@@ -791,8 +893,16 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
 
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
       e.preventDefault();
+      e.stopPropagation();
       if (e.shiftKey) handleRedo();
       else handleUndo();
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+      e.preventDefault();
+      e.stopPropagation();
+      handleRedo();
       return;
     }
 
@@ -930,7 +1040,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     if (source === "num" && e.key === "Backspace" && parsed.hasOperatorOnly) {
       e.preventDefault();
       const updated = rows.map((r) => (r.id === row.id ? { ...r, raw: "" } : r));
-      setRows(updated);
+      commitRows(updated);
       setTimeout(() => focusRow(row.id, 0, false), 10);
       return;
     }
@@ -981,50 +1091,6 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
     }
   };
 
-  // Quick operator button injection: if active line already has content, insert operator on a NEW line below
-  const applyOperatorToActive = (op: TapeOp) => {
-    let targetId = activeRowId;
-    let idx = rows.findIndex((r) => r.id === targetId && r.type === "entry");
-    if (idx === -1) {
-      for (let i = rows.length - 1; i >= 0; i--) {
-        if (rows[i].type === "entry") {
-          idx = i;
-          targetId = rows[i].id;
-          break;
-        }
-      }
-    }
-    if (idx === -1) {
-      const newId = uid();
-      commitRows([...rows, { id: newId, type: "entry", raw: `${op} ` }]);
-      setTimeout(() => focusRow(newId, 0), 20);
-      return;
-    }
-
-    const row = rows[idx];
-    const isEmptyOrOnlyOp = /^\s*[+\-*/×÷−]?\s*$/.test(row.raw);
-
-    if (!isEmptyOrOnlyOp) {
-      let committedRaw = row.raw;
-      const parsed = parseTapeLine(committedRaw);
-      if (parsed.kind === "calc" && !/^\s*[+\-*/×÷−]/.test(committedRaw)) {
-        committedRaw = `+ ${committedRaw.trimStart()}`;
-      }
-      const nextEntryId = uid();
-      const updated = [...rows];
-      updated[idx] = { ...row, raw: committedRaw };
-      updated.splice(idx + 1, 0, { id: nextEntryId, type: "entry", raw: `${op} ` });
-      commitRows(updated);
-      setTimeout(() => focusRow(nextEntryId, 0), 20);
-      return;
-    }
-
-    const nextRaw = `${op} `;
-    const updated = rows.map((r) => (r.id === targetId ? { ...r, raw: nextRaw } : r));
-    setRows(updated);
-    setTimeout(() => focusRow(targetId, 0), 20);
-  };
-
   const deleteSpecialRow = (id: string) => {
     const nextRows = rows.filter((r) => r.id !== id);
     if (nextRows.length === 0) {
@@ -1060,15 +1126,31 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
         onClick={() => setIsOpen((prev) => !prev)}
         title={isOpen ? "Minimizar Calculadora Fita" : "Abrir Calculadora Fita"}
         aria-label={isOpen ? "Minimizar Calculadora Fita" : "Abrir Calculadora Fita"}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[950] w-14 h-14 rounded-full bg-[#0d1926] hover:bg-[#13263a] text-white border-2 border-emerald-400/70 shadow-[0_8px_28px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer no-print"
+        className={`fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[950] w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer no-print ${
+          isLight
+            ? "bg-white hover:bg-slate-50 text-slate-800 border-emerald-500 shadow-[0_8px_28px_rgba(15,23,42,0.22)]"
+            : "bg-[#0d1926] hover:bg-[#13263a] text-white border-emerald-400/70 shadow-[0_8px_28px_rgba(0,0,0,0.4)]"
+        }`}
       >
-        <Calculator className={`w-6 h-6 transition-colors ${isOpen ? "text-sky-400" : "text-emerald-400"}`} />
+        <Calculator
+          className={`w-6 h-6 transition-colors ${
+            isOpen
+              ? isLight
+                ? "text-sky-600"
+                : "text-sky-400"
+              : isLight
+              ? "text-emerald-600"
+              : "text-emerald-400"
+          }`}
+        />
         {!isOpen && currentRunning !== 0 && (
           <span
-            className={`absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full font-mono text-[9px] font-black shadow border border-slate-900 ${
+            className={`absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full font-mono text-[9px] font-black shadow border ${
+              isLight ? "border-white" : "border-slate-900"
+            } ${
               currentRunning < 0
                 ? "bg-rose-500 text-white"
-                : "bg-emerald-400 text-slate-950"
+                : "bg-emerald-500 text-white"
             }`}
           >
             {currentRunning < 0 ? "-" : ""}
@@ -1081,6 +1163,7 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={calcContainerRef}
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -1090,7 +1173,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                 ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }
                 : undefined
             }
-            className={`fixed z-[960] no-print flex flex-col bg-[#0d1926] text-slate-100 border border-[#243b55] rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.65)] overflow-hidden ${
+            className={`fixed z-[960] no-print flex flex-col border rounded-2xl overflow-hidden ${
+              isLight
+                ? "bg-white text-slate-800 border-slate-300 shadow-[0_24px_60px_rgba(15,23,42,0.22)]"
+                : "bg-[#0d1926] text-slate-100 border-[#243b55] shadow-[0_24px_60px_rgba(0,0,0,0.65)]"
+            } ${
               isExpanded
                 ? "inset-x-3 top-14 bottom-20 md:inset-auto md:bottom-24 md:right-6 md:w-[540px] md:h-[640px] md:max-h-[calc(100vh-110px)]"
                 : "inset-x-3 bottom-20 h-[62vh] max-h-[520px] md:inset-auto md:bottom-24 md:right-6 md:w-[430px] md:h-[520px] md:max-h-[calc(100vh-110px)]"
@@ -1099,21 +1186,31 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
             {/* Window Header (Draggable on desktop) */}
             <div
               onPointerDown={startDrag}
-              className="bg-[#112233] border-b border-[#1f364d] px-3.5 py-2.5 flex items-center justify-between select-none md:cursor-grab md:active:cursor-grabbing shrink-0"
+              className={`border-b px-3.5 py-2.5 flex items-center justify-between select-none md:cursor-grab md:active:cursor-grabbing shrink-0 ${
+                isLight
+                  ? "bg-slate-100 border-slate-200"
+                  : "bg-[#112233] border-[#1f364d]"
+              }`}
             >
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                  <Calculator className="w-4 h-4 text-emerald-400" />
+                <div
+                  className={`w-7 h-7 rounded-lg border flex items-center justify-center ${
+                    isLight
+                      ? "bg-emerald-50 border-emerald-200"
+                      : "bg-emerald-500/15 border-emerald-500/30"
+                  }`}
+                >
+                  <Calculator className={`w-4 h-4 ${isLight ? "text-emerald-600" : "text-emerald-400"}`} />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-sans text-xs font-black tracking-wide text-white">
+                    <span className={`font-sans text-xs font-black tracking-wide ${isLight ? "text-slate-900" : "text-white"}`}>
                       Calculadora Fita
                     </span>
-                    <GripHorizontal className="w-3.5 h-3.5 text-slate-500 hidden md:inline" />
+                    <GripHorizontal className={`w-3.5 h-3.5 hidden md:inline ${isLight ? "text-slate-400" : "text-slate-500"}`} />
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400 block leading-none">
-                    Alt+I Imprimir • Esc Limpar • Ctrl+A Selecionar
+                  <span className={`text-[10px] font-mono block leading-none ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                    Alt+I Imprimir • Esc Limpar • Ctrl+Z Desfazer
                   </span>
                 </div>
               </div>
@@ -1123,7 +1220,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={() => setIsExpanded((v) => !v)}
                   title={isExpanded ? "Tamanho padrão" : "Expandir"}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1b334a] transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                      : "text-slate-400 hover:text-white hover:bg-[#1b334a]"
+                  }`}
                 >
                   {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </button>
@@ -1131,7 +1232,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={() => setIsOpen(false)}
                   title="Minimizar para ícone circular"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1b334a] transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                      : "text-slate-400 hover:text-white hover:bg-[#1b334a]"
+                  }`}
                 >
                   <Minus className="w-4 h-4" />
                 </button>
@@ -1139,7 +1244,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={() => setIsOpen(false)}
                   title="Fechar janela (mantém salvo)"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                      : "text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
+                  }`}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1147,14 +1256,24 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
             </div>
 
             {/* CalcTape-Style Toolbar */}
-            <div className="bg-[#0f1e2e] border-b border-[#1c3047] px-2.5 py-1.5 flex items-center justify-between gap-1 shrink-0">
+            <div
+              className={`border-b px-2.5 py-1.5 flex items-center justify-between gap-1 shrink-0 ${
+                isLight
+                  ? "bg-slate-50 border-slate-200"
+                  : "bg-[#0f1e2e] border-[#1c3047]"
+              }`}
+            >
               <div className="flex items-center gap-0.5">
                 <button
                   type="button"
                   onClick={handleUndo}
                   disabled={undoStack.length === 0}
                   title="Desfazer (Ctrl+Z)"
-                  className="p-1.5 rounded-lg text-slate-300 hover:bg-[#1a3047] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-600 hover:bg-slate-200"
+                      : "text-slate-300 hover:bg-[#1a3047]"
+                  }`}
                 >
                   <Undo2 className="w-3.5 h-3.5" />
                 </button>
@@ -1162,42 +1281,79 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={handleRedo}
                   disabled={redoStack.length === 0}
-                  title="Refazer"
-                  className="p-1.5 rounded-lg text-slate-300 hover:bg-[#1a3047] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  title="Refazer (Ctrl+Y / Ctrl+Shift+Z)"
+                  className={`p-1.5 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-600 hover:bg-slate-200"
+                      : "text-slate-300 hover:bg-[#1a3047]"
+                  }`}
                 >
                   <Redo2 className="w-3.5 h-3.5" />
                 </button>
 
-                <span className="h-4 w-px bg-[#1f364d] mx-1" />
+                <span className={`h-4 w-px mx-1 ${isLight ? "bg-slate-300" : "bg-[#1f364d]"}`} />
 
                 <button
                   type="button"
                   onClick={() => setZoomPct((z) => Math.max(80, z - 10))}
                   title="Diminuir texto"
-                  className="p-1.5 rounded-lg text-slate-300 hover:bg-[#1a3047] transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-600 hover:bg-slate-200"
+                      : "text-slate-300 hover:bg-[#1a3047]"
+                  }`}
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
                 </button>
-                <span className="font-mono text-[10px] font-bold text-slate-200 bg-[#182b40] px-2 py-0.5 rounded-full border border-[#243d59]">
+                <span
+                  className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    isLight
+                      ? "text-slate-700 bg-white border-slate-300"
+                      : "text-slate-200 bg-[#182b40] border-[#243d59]"
+                  }`}
+                >
                   {zoomPct}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setZoomPct((z) => Math.min(140, z + 10))}
                   title="Aumentar texto"
-                  className="p-1.5 rounded-lg text-slate-300 hover:bg-[#1a3047] transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-slate-600 hover:bg-slate-200"
+                      : "text-slate-300 hover:bg-[#1a3047]"
+                  }`}
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
                 </button>
 
-                <span className="h-4 w-px bg-[#1f364d] mx-1" />
+                <span className={`h-4 w-px mx-1 ${isLight ? "bg-slate-300" : "bg-[#1f364d]"}`} />
+
+                <button
+                  type="button"
+                  onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+                  title={isLight ? "Mudar para Tema Escuro" : "Mudar para Tema Claro"}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-amber-600 hover:bg-amber-100"
+                      : "text-amber-300 hover:bg-[#1a3047]"
+                  }`}
+                >
+                  {isLight ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+                </button>
 
                 <button
                   type="button"
                   onClick={() => setShowHelp((h) => !h)}
                   title="Como usar"
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    showHelp ? "bg-sky-500/20 text-sky-400" : "text-slate-300 hover:bg-[#1a3047]"
+                    showHelp
+                      ? isLight
+                        ? "bg-sky-100 text-sky-600"
+                        : "bg-sky-500/20 text-sky-400"
+                      : isLight
+                      ? "text-slate-600 hover:bg-slate-200"
+                      : "text-slate-300 hover:bg-[#1a3047]"
                   }`}
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
@@ -1209,7 +1365,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={handlePrint}
                   title="Imprimir Fita (Alt + I)"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold font-mono text-sky-300 hover:bg-sky-500/15 border border-transparent hover:border-sky-500/30 transition-colors cursor-pointer"
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold font-mono border border-transparent transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-sky-700 hover:bg-sky-100 hover:border-sky-200"
+                      : "text-sky-300 hover:bg-sky-500/15 hover:border-sky-500/30"
+                  }`}
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Imprimir</span>
@@ -1218,7 +1378,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={handleInsertDividerReset}
                   title="Zerar para iniciar nova soma abaixo"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold font-mono text-amber-300 hover:bg-amber-500/15 border border-transparent hover:border-amber-500/30 transition-colors cursor-pointer"
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold font-mono border border-transparent transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-amber-700 hover:bg-amber-100 hover:border-amber-200"
+                      : "text-amber-300 hover:bg-amber-500/15 hover:border-amber-500/30"
+                  }`}
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span className="hidden sm:inline">Nova</span>
@@ -1227,7 +1391,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   type="button"
                   onClick={handleClearAll}
                   title="Limpar toda a fita (Esc)"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold font-mono text-rose-400 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/30 transition-colors cursor-pointer"
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold font-mono border border-transparent transition-colors cursor-pointer ${
+                    isLight
+                      ? "text-rose-600 hover:bg-rose-100 hover:border-rose-200"
+                      : "text-rose-400 hover:bg-rose-500/15 hover:border-rose-500/30"
+                  }`}
                 >
                   <Trash2 className="w-3 h-3" />
                   <span className="hidden sm:inline">Limpar</span>
@@ -1237,28 +1405,34 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
 
             {/* Optional Quick Help Banner */}
             {showHelp && (
-              <div className="bg-[#13293f] border-b border-sky-500/30 px-3.5 py-2.5 text-[11px] text-slate-200 space-y-1 shrink-0 font-sans">
-                <div className="font-bold text-sky-300 flex items-center justify-between">
+              <div
+                className={`border-b px-3.5 py-2.5 text-[11px] space-y-1 shrink-0 font-sans ${
+                  isLight
+                    ? "bg-sky-50 border-sky-200 text-slate-700"
+                    : "bg-[#13293f] border-sky-500/30 text-slate-200"
+                }`}
+              >
+                <div className={`font-bold flex items-center justify-between ${isLight ? "text-sky-700" : "text-sky-300"}`}>
                   <span>Atalhos & Guia Rápido:</span>
                   <button
                     type="button"
                     onClick={() => setShowHelp(false)}
-                    className="text-slate-400 hover:text-white cursor-pointer"
+                    className={`cursor-pointer ${isLight ? "text-slate-400 hover:text-slate-700" : "text-slate-400 hover:text-white"}`}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <p className="text-slate-300 leading-relaxed">
-                  • Digite um valor e aperte <code className="text-emerald-300 font-mono">+</code>,{" "}
-                  <code className="text-rose-400 font-mono">-</code>,{" "}
-                  <code className="text-amber-300 font-mono">*</code> ou{" "}
-                  <code className="text-sky-300 font-mono">/</code> para ir direto para a linha de baixo com o sinal.
+                <p className={`leading-relaxed ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                  • Digite um valor e aperte <code className={`font-mono ${isLight ? "text-emerald-700 font-bold" : "text-emerald-300"}`}>+</code>,{" "}
+                  <code className={`font-mono ${isLight ? "text-rose-600 font-bold" : "text-rose-400"}`}>-</code>,{" "}
+                  <code className={`font-mono ${isLight ? "text-amber-700 font-bold" : "text-amber-300"}`}>*</code> ou{" "}
+                  <code className={`font-mono ${isLight ? "text-sky-700 font-bold" : "text-sky-300"}`}>/</code> para ir direto para a linha de baixo com o sinal.
                 </p>
-                <p className="text-slate-300 leading-relaxed">
-                  • <kbd className="bg-[#0b1622] px-1 rounded border border-slate-600 font-mono text-[10px]">Enter</kbd> (ou <code className="text-emerald-300 font-mono">=</code>) fecha a operação e mostra o total. No início da linha (antes do valor) ou em textos, <kbd className="bg-[#0b1622] px-1 rounded border border-slate-600 font-mono text-[10px]">Enter</kbd> pula linha.
+                <p className={`leading-relaxed ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                  • <kbd className={`px-1 rounded border font-mono text-[10px] ${isLight ? "bg-white border-slate-300 text-slate-700" : "bg-[#0b1622] border-slate-600"}`}>Enter</kbd> (ou <code className={`font-mono ${isLight ? "text-emerald-700 font-bold" : "text-emerald-300"}`}>=</code>) fecha a operação e mostra o total. No início da linha (antes do valor) ou em textos, <kbd className={`px-1 rounded border font-mono text-[10px] ${isLight ? "bg-white border-slate-300 text-slate-700" : "bg-[#0b1622] border-slate-600"}`}>Enter</kbd> pula linha.
                 </p>
-                <p className="text-slate-300 leading-relaxed">
-                  • <kbd className="bg-[#0b1622] px-1 rounded border border-slate-600 font-mono text-[10px]">Alt+I</kbd> Imprime • <kbd className="bg-[#0b1622] px-1 rounded border border-slate-600 font-mono text-[10px]">Esc</kbd> Limpa tudo • <kbd className="bg-[#0b1622] px-1 rounded border border-slate-600 font-mono text-[10px]">Ctrl+A</kbd> Seleciona tudo.
+                <p className={`leading-relaxed ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                  • <kbd className={`px-1 rounded border font-mono text-[10px] ${isLight ? "bg-white border-slate-300 text-slate-700" : "bg-[#0b1622] border-slate-600"}`}>Alt+I</kbd> Imprime • <kbd className={`px-1 rounded border font-mono text-[10px] ${isLight ? "bg-white border-slate-300 text-slate-700" : "bg-[#0b1622] border-slate-600"}`}>Esc</kbd> Limpa • <kbd className={`px-1 rounded border font-mono text-[10px] ${isLight ? "bg-white border-slate-300 text-slate-700" : "bg-[#0b1622] border-slate-600"}`}>Ctrl+Z</kbd> Desfazer • <kbd className={`px-1 rounded border font-mono text-[10px] ${isLight ? "bg-white border-slate-300 text-slate-700" : "bg-[#0b1622] border-slate-600"}`}>Ctrl+A</kbd> Selecionar tudo.
                 </p>
               </div>
             )}
@@ -1274,7 +1448,9 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                   focusRow(lastEntry.id, (p.numStr ?? lastEntry.raw).length, false);
                 }
               }}
-              className="flex-1 overflow-y-auto bg-[#0b1622] select-text cursor-text"
+              className={`flex-1 overflow-y-auto select-text cursor-text ${
+                isLight ? "bg-white" : "bg-[#0b1622]"
+              }`}
             >
               {evaluated.map((row, idx) => {
                 const isActive = row.id === activeRowId;
@@ -1288,20 +1464,32 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                         setIsAllSelected(false);
                       }}
                       style={{ minHeight: `${rowMinHeightPx}px` }}
-                      className={`group border-b border-[#182c42] px-3 flex items-center justify-between ${
-                        isAllSelected ? "bg-sky-500/20" : "bg-[#0e1d2d]"
+                      className={`group border-b px-3 flex items-center justify-between ${
+                        isLight ? "border-slate-200" : "border-[#182c42]"
+                      } ${
+                        isAllSelected
+                          ? "bg-sky-500/20"
+                          : isLight
+                          ? "bg-amber-50/70"
+                          : "bg-[#0e1d2d]"
                       }`}
                     >
-                      <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-amber-400/80 w-full">
-                        <span className="flex-1 border-t border-dashed border-amber-500/40" />
+                      <div
+                        className={`flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest w-full ${
+                          isLight ? "text-amber-700" : "text-amber-400/80"
+                        }`}
+                      >
+                        <span className={`flex-1 border-t border-dashed ${isLight ? "border-amber-400" : "border-amber-500/40"}`} />
                         <span>Nova Conta (Zerada)</span>
-                        <span className="flex-1 border-t border-dashed border-amber-500/40" />
+                        <span className={`flex-1 border-t border-dashed ${isLight ? "border-amber-400" : "border-amber-500/40"}`} />
                       </div>
                       <button
                         type="button"
                         onClick={() => deleteSpecialRow(row.id)}
                         title="Remover separador"
-                        className="opacity-0 group-hover:opacity-100 ml-2 text-slate-500 hover:text-rose-400 transition-opacity cursor-pointer"
+                        className={`opacity-0 group-hover:opacity-100 ml-2 transition-opacity cursor-pointer ${
+                          isLight ? "text-slate-400 hover:text-rose-600" : "text-slate-500 hover:text-rose-400"
+                        }`}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -1321,31 +1509,53 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                         e.stopPropagation();
                         setIsAllSelected(false);
                       }}
-                      className={`group border-b border-[#182c42] px-3 py-1 ${
-                        isAllSelected ? "bg-sky-500/25" : "bg-[#0c1a28]"
+                      className={`group border-b px-3 py-1 ${
+                        isLight ? "border-slate-200" : "border-[#182c42]"
+                      } ${
+                        isAllSelected
+                          ? "bg-sky-500/25"
+                          : isLight
+                          ? "bg-slate-50"
+                          : "bg-[#0c1a28]"
                       }`}
                     >
-                      <div className="w-40 border-t border-b border-slate-400/60 h-[3px] mb-1 ml-1" />
+                      <div
+                        className={`w-40 border-t border-b h-[3px] mb-1 ml-1 ${
+                          isLight ? "border-slate-400" : "border-slate-400/60"
+                        }`}
+                      />
                       <div
                         style={{ fontSize: `${fontSizePx}px`, minHeight: `${rowMinHeightPx - 4}px` }}
                         className="flex items-center font-mono"
                       >
                         <span
                           className={`w-6 text-center font-bold shrink-0 ${
-                            isNeg ? "text-rose-400" : "text-slate-300"
+                            isNeg
+                              ? isLight
+                                ? "text-rose-600"
+                                : "text-rose-400"
+                              : isLight
+                              ? "text-slate-600"
+                              : "text-slate-300"
                           }`}
                         >
                           {isNeg ? "-" : "+"}
                         </span>
 
                         {row.hasDivZeroError ? (
-                          <span className="w-28 text-right font-bold text-rose-400 shrink-0">
+                          <span className={`w-28 text-right font-bold shrink-0 ${isLight ? "text-rose-600" : "text-rose-400"}`}>
                             Erro (/0)
                           </span>
                         ) : (
                           <span
                             className={`w-28 text-right font-black tabular-nums shrink-0 ${
-                              isNeg ? "text-rose-400" : "text-emerald-400"
+                              isNeg
+                                ? isLight
+                                  ? "text-rose-600"
+                                  : "text-rose-400"
+                                : isLight
+                                ? "text-emerald-600"
+                                : "text-emerald-400"
                             }`}
                           >
                             {formatTapeNumber(Math.abs(val))}
@@ -1357,10 +1567,14 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                             type="button"
                             onClick={() => handleCopyValue(val, row.id)}
                             title="Copiar resultado"
-                            className="p-1 rounded text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                            className={`p-1 rounded transition-colors cursor-pointer ${
+                              isLight
+                                ? "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                            }`}
                           >
                             {isCopied ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <Check className={`w-3.5 h-3.5 ${isLight ? "text-emerald-600" : "text-emerald-400"}`} />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
@@ -1369,7 +1583,9 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                             type="button"
                             onClick={() => deleteSpecialRow(row.id)}
                             title="Remover linha de total"
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-500 hover:text-rose-400 transition-opacity cursor-pointer ml-auto"
+                            className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity cursor-pointer ml-auto ${
+                              isLight ? "text-slate-400 hover:text-rose-600" : "text-slate-500 hover:text-rose-400"
+                            }`}
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1399,11 +1615,19 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                       minHeight: `${rowMinHeightPx}px`,
                       fontSize: `${fontSizePx}px`
                     }}
-                    className={`relative border-b border-[#182c42] px-3 flex items-center font-mono transition-colors ${
+                    className={`relative border-b px-3 flex items-center font-mono transition-colors ${
+                      isLight ? "border-slate-200" : "border-[#182c42]"
+                    } ${
                       isAllSelected
-                        ? "bg-sky-500/25 border-l-4 border-l-sky-400 pl-2"
+                        ? isLight
+                          ? "bg-sky-100 border-l-4 border-l-sky-500 pl-2"
+                          : "bg-sky-500/25 border-l-4 border-l-sky-400 pl-2"
                         : isActive
-                        ? "bg-[#102b44] border-l-4 border-l-sky-400 pl-2"
+                        ? isLight
+                          ? "bg-sky-50/90 border-l-4 border-l-sky-500 pl-2"
+                          : "bg-[#102b44] border-l-4 border-l-sky-400 pl-2"
+                        : isLight
+                        ? "hover:bg-slate-50"
                         : "hover:bg-[#0f1f30]"
                     }`}
                   >
@@ -1414,11 +1638,19 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                           onClick={() => focusRow(row.id, 0, false)}
                           className={`w-6 text-center font-bold shrink-0 select-none ${
                             parsed.op === "-"
-                              ? "text-rose-400"
+                              ? isLight
+                                ? "text-rose-600"
+                                : "text-rose-400"
                               : parsed.op === "*"
-                              ? "text-amber-300"
+                              ? isLight
+                                ? "text-amber-600"
+                                : "text-amber-300"
                               : parsed.op === "/"
-                              ? "text-sky-300"
+                              ? isLight
+                                ? "text-sky-600"
+                                : "text-sky-300"
+                              : isLight
+                              ? "text-slate-700"
                               : "text-slate-200"
                           }`}
                         >
@@ -1447,13 +1679,25 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                             setActiveRowId(row.id);
                           }}
                           placeholder="0,00"
-                          className={`w-28 text-right tabular-nums shrink-0 bg-transparent outline-none font-mono py-1 placeholder:text-slate-600/70 caret-sky-400 selection:bg-sky-400/35 ${
+                          className={`w-28 text-right tabular-nums shrink-0 bg-transparent outline-none font-mono py-1 ${
+                            isLight
+                              ? "placeholder:text-slate-300 caret-sky-600 selection:bg-sky-200"
+                              : "placeholder:text-slate-600/70 caret-sky-400 selection:bg-sky-400/35"
+                          } ${
                             parsed.op === "-"
-                              ? "text-rose-400 font-semibold"
+                              ? isLight
+                                ? "text-rose-600 font-semibold"
+                                : "text-rose-400 font-semibold"
                               : parsed.op === "*"
-                              ? "text-amber-200 font-semibold"
+                              ? isLight
+                                ? "text-amber-700 font-semibold"
+                                : "text-amber-200 font-semibold"
                               : parsed.op === "/"
-                              ? "text-sky-200 font-semibold"
+                              ? isLight
+                                ? "text-sky-700 font-semibold"
+                                : "text-sky-200 font-semibold"
+                              : isLight
+                              ? "text-slate-900 font-semibold"
                               : "text-slate-100 font-semibold"
                           }`}
                           autoComplete="off"
@@ -1480,7 +1724,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                             setIsAllSelected(false);
                             setActiveRowId(row.id);
                           }}
-                          className="flex-1 min-w-0 pl-3 bg-transparent outline-none font-sans text-xs sm:text-sm text-slate-400 caret-sky-400 selection:bg-sky-400/35 py-1"
+                          className={`flex-1 min-w-0 pl-3 bg-transparent outline-none font-sans text-xs sm:text-sm py-1 ${
+                            isLight
+                              ? "text-slate-600 caret-sky-600 selection:bg-sky-200"
+                              : "text-slate-400 caret-sky-400 selection:bg-sky-400/35"
+                          }`}
                           autoComplete="off"
                           spellCheck={false}
                         />
@@ -1503,7 +1751,11 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
                             ? "Ex: + 100,00  |  - 50,00  |  * 2  |  / 4  |  ou texto..."
                             : ""
                         }
-                        className="w-full bg-transparent text-slate-200 placeholder:text-slate-500/70 placeholder:text-xs outline-none font-sans text-xs sm:text-sm caret-sky-400 selection:bg-sky-400/35 py-1"
+                        className={`w-full bg-transparent placeholder:text-xs outline-none font-sans text-xs sm:text-sm py-1 ${
+                          isLight
+                            ? "text-slate-800 placeholder:text-slate-400 caret-sky-600 selection:bg-sky-200"
+                            : "text-slate-200 placeholder:text-slate-500/70 caret-sky-400 selection:bg-sky-400/35"
+                        }`}
                         autoComplete="off"
                         spellCheck={false}
                       />
@@ -1513,89 +1765,84 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
               })}
             </div>
 
-            {/* Quick Operators & Total Action Bar */}
-            <div className="bg-[#102031] border-t border-[#1f364d] px-3 py-2 flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-1">
-                {(["+", "-", "*", "/"] as TapeOp[]).map((op) => (
-                  <button
-                    key={op}
-                    type="button"
-                    onClick={() => applyOperatorToActive(op)}
-                    title={
-                      op === "+"
-                        ? "Somar (+)"
-                        : op === "-"
-                        ? "Subtrair (-)"
-                        : op === "*"
-                        ? "Multiplicar (*)"
-                        : "Dividir (/)"
-                    }
-                    className={`w-8 h-8 rounded-lg font-mono text-sm font-black border transition-all active:scale-95 cursor-pointer flex items-center justify-center ${
-                      op === "-"
-                        ? "bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25"
-                        : op === "*"
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25"
-                        : op === "/"
-                        ? "bg-sky-500/15 text-sky-300 border-sky-500/30 hover:bg-sky-500/25"
-                        : "bg-slate-700/40 text-white border-slate-600/60 hover:bg-slate-700/70"
-                    }`}
-                  >
-                    {opSymbol(op)}
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={insertTotalAtActive}
-                  disabled={!hasPendingOps}
-                  title="Fechar operação e exibir total (Enter ou =)"
-                  className="ml-1 h-8 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/30 disabled:text-slate-400 text-slate-950 font-sans text-xs font-black flex items-center gap-1 transition-all active:scale-95 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  <span>=</span>
-                  <CornerDownLeft className="w-3 h-3" />
-                </button>
-              </div>
-
+            {/* Saldo Summary Bar (clean, without + - × ÷ = buttons) */}
+            <div
+              className={`border-t px-3 py-2 flex items-center justify-end gap-2 shrink-0 ${
+                isLight
+                  ? "bg-slate-50 border-slate-200"
+                  : "bg-[#102031] border-[#1f364d]"
+              }`}
+            >
               {/* Live Running Subtotal Pill */}
               <button
                 type="button"
                 onClick={() => handleCopyValue(currentRunning, "live_subtotal")}
                 title="Clique para copiar o saldo atual"
-                className="flex items-center gap-1.5 bg-[#09131d] hover:bg-[#0d1c2b] border border-[#223a54] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                className={`flex items-center gap-1.5 border px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  isLight
+                    ? "bg-white hover:bg-slate-100 border-slate-300 shadow-sm"
+                    : "bg-[#09131d] hover:bg-[#0d1c2b] border-[#223a54]"
+                }`}
               >
-                <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400">
+                <span className={`text-[9px] font-mono uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   Saldo:
                 </span>
                 {hasDivZeroError ? (
-                  <span className="font-mono text-xs font-black text-rose-400">Erro (/0)</span>
+                  <span className={`font-mono text-xs font-black ${isLight ? "text-rose-600" : "text-rose-400"}`}>
+                    Erro (/0)
+                  </span>
                 ) : (
                   <span
                     className={`font-mono text-xs font-black tabular-nums ${
-                      currentRunning < 0 ? "text-rose-400" : "text-emerald-400"
+                      currentRunning < 0
+                        ? isLight
+                          ? "text-rose-600"
+                          : "text-rose-400"
+                        : isLight
+                        ? "text-emerald-600"
+                        : "text-emerald-400"
                     }`}
                   >
                     {currentRunning < 0 ? "-" : ""}R$ {formatTapeNumber(Math.abs(currentRunning))}
                   </span>
                 )}
                 {copiedId === "live_subtotal" ? (
-                  <Check className="w-3 h-3 text-emerald-400" />
+                  <Check className={`w-3 h-3 ${isLight ? "text-emerald-600" : "text-emerald-400"}`} />
                 ) : (
-                  <Copy className="w-3 h-3 text-slate-500" />
+                  <Copy className={`w-3 h-3 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
                 )}
               </button>
             </div>
 
             {/* CalcTape-Style Bottom Status Bar */}
-            <div className="bg-[#0b1520] border-t border-[#182c42] px-3 py-1.5 flex items-center justify-between text-[10px] font-mono text-slate-400 shrink-0">
+            <div
+              className={`border-t px-3 py-1.5 flex items-center justify-between text-[10px] font-mono shrink-0 ${
+                isLight
+                  ? "bg-slate-100 border-slate-200 text-slate-500"
+                  : "bg-[#0b1520] border-[#182c42] text-slate-400"
+              }`}
+            >
               <div className="flex items-center gap-2">
-                <span className="bg-[#152538] text-slate-200 px-2 py-0.5 rounded-full border border-[#223952]">
+                <span
+                  className={`px-2 py-0.5 rounded-full border ${
+                    isLight
+                      ? "bg-white text-slate-700 border-slate-300"
+                      : "bg-[#152538] text-slate-200 border-[#223952]"
+                  }`}
+                >
                   {zoomPct}%
                 </span>
-                <span className="bg-[#152538] text-slate-200 px-2 py-0.5 rounded-full border border-[#223952]">
+                <span
+                  className={`px-2 py-0.5 rounded-full border ${
+                    isLight
+                      ? "bg-white text-slate-700 border-slate-300"
+                      : "bg-[#152538] text-slate-200 border-[#223952]"
+                  }`}
+                >
                   Lin {activeLineNumber}:{evaluated.length}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-sky-400 font-sans">
+              <div className={`flex items-center gap-1 font-sans ${isLight ? "text-sky-600" : "text-sky-400"}`}>
                 <Check className="w-3 h-3" />
                 <span>{statusFeedback || "Salvo automaticamente"}</span>
               </div>
