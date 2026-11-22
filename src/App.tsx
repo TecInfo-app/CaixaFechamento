@@ -45,7 +45,8 @@ import {
   Fechamento,
   LocalDB,
   CaixaTurno,
-  NotificacaoManual
+  NotificacaoManual,
+  PrintCalculadoraData
 } from "./types";
 
 import { doc, getDocFromServer, onSnapshot, setDoc } from "firebase/firestore";
@@ -59,6 +60,7 @@ import ModalAbrirCaixa from "./components/ModalAbrirCaixa";
 import ModalFecharCaixa from "./components/ModalFecharCaixa";
 import ModalHistoricoFechamentos from "./components/ModalHistoricoFechamentos";
 import PrintAreaElement from "./components/PrintAreaElement";
+import TapeCalculator from "./components/TapeCalculator";
 
 // Real stores and operators default fallback
 const DEFAULT_LOJAS = ["CIA DO CHOPP", "BOTECO", "PIZZARIA", "ADEGA"];
@@ -352,7 +354,8 @@ export default function App() {
   const [vendaToEdit, setVendaToEdit] = useState<Venda | null>(null);
 
   // --- Printing Trigger State ---
-  const [printType, setPrintType] = useState<"fechamento" | "item" | "consolidado" | "recebimento" | "lista_pendentes" | "devedor_individual" | null>(null);
+  const [printType, setPrintType] = useState<"fechamento" | "item" | "consolidado" | "recebimento" | "lista_pendentes" | "devedor_individual" | "calculadora" | null>(null);
+  const [printCalculadora, setPrintCalculadora] = useState<PrintCalculadoraData | null>(null);
   const [printItem, setPrintItem] = useState<Lancamento | null>(null);
   const [printFechamento, setPrintFechamento] = useState<Fechamento | null>(null);
   const [printConsolidado, setPrintConsolidado] = useState<any | null>(null);
@@ -1339,6 +1342,30 @@ export default function App() {
 
   const setPrintConsolidated = (val: any) => {
     setPrintConsolidado(val);
+  };
+
+  const handlePrintCalculadora = (calcData: PrintCalculadoraData) => {
+    setPrintType("calculadora");
+    setPrintCalculadora(calcData);
+
+    setTimeout(async () => {
+      let printedSilently = false;
+      if (isLocalPrintEnabled) {
+        const printAreaEl = document.getElementById("printArea");
+        if (printAreaEl) {
+          printedSilently = await tryLocalPrint(printAreaEl.innerHTML);
+        }
+      }
+
+      if (!printedSilently) {
+        window.print();
+      }
+
+      setTimeout(() => {
+        setPrintType(null);
+        setPrintCalculadora(null);
+      }, 500);
+    }, 250);
   };
 
   const handleSavePaymentPendente = (
@@ -3048,7 +3075,11 @@ export default function App() {
         activeRecebimento={printRecebimento}
         activeListaPendentes={printListaPendentes}
         activeDevedorIndividual={printDevedorIndividual}
+        activeCalculadora={printCalculadora}
       />
+
+      {/* Floating CalcTape-Style Tape Calculator */}
+      <TapeCalculator loja={loja} operador={operador} onPrintTape={handlePrintCalculadora} />
     </>
   );
 }

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Lancamento, Fechamento } from "../types";
+import { Lancamento, Fechamento, PrintCalculadoraData } from "../types";
 
 interface PrintAreaElementProps {
-  printType: "fechamento" | "item" | "consolidado" | "recebimento" | "lista_pendentes" | "devedor_individual" | null;
+  printType: "fechamento" | "item" | "consolidado" | "recebimento" | "lista_pendentes" | "devedor_individual" | "calculadora" | null;
   activeItem: Lancamento | null;
   activeFechamento: Fechamento | null;
   activeConsolidado: {
@@ -55,6 +55,7 @@ interface PrintAreaElementProps {
     }[];
     dataHora: string;
   } | null;
+  activeCalculadora?: PrintCalculadoraData | null;
 }
 
 export default function PrintAreaElement({
@@ -65,6 +66,7 @@ export default function PrintAreaElement({
   activeRecebimento,
   activeListaPendentes,
   activeDevedorIndividual,
+  activeCalculadora,
 }: PrintAreaElementProps) {
   if (!printType) return <div id="printArea"></div>;
 
@@ -445,6 +447,83 @@ export default function PrintAreaElement({
 
           <div className="text-center text-[10px] mt-6 border-t border-black pt-1">
             Assinatura: _____________________
+          </div>
+        </div>
+      )}
+
+      {/* 7. CALCULATOR TAPE RECEIPT PRINT */}
+      {printType === "calculadora" && activeCalculadora && (
+        <div className="space-y-2 font-mono">
+          <div className="text-center font-extrabold text-lg border-b-2 border-black pb-1 uppercase">
+            {activeCalculadora.loja}
+          </div>
+          <div className="text-center font-black tracking-wide border-b border-black pb-1 uppercase text-xs">
+            FITA DE CALCULADORA
+          </div>
+          <div className="space-y-0.5 text-[11px] text-center border-b border-dashed border-black pb-2">
+            <p><b>OPERADOR:</b> {activeCalculadora.operador}</p>
+            <p><b>DATA/HORA:</b> {activeCalculadora.dataHora}</p>
+          </div>
+
+          <div className="space-y-1 text-xs pt-1">
+            {activeCalculadora.linhas.map((l, i) => {
+              if (l.type === "divider") {
+                return (
+                  <div key={i} className="text-center text-[10px] border-t border-b border-dashed border-black py-0.5 my-1">
+                    --- NOVA CONTA ---
+                  </div>
+                );
+              }
+              if (l.type === "total") {
+                return (
+                  <div key={i} className="pt-0.5 pb-1">
+                    <div className="border-t-2 border-b border-black h-[3px] mb-1" />
+                    <div className="flex justify-between font-black text-sm">
+                      <span>{l.isNeg ? "-" : "+"} TOTAL:</span>
+                      <span>{l.hasError ? "Erro (/0)" : `R$ ${l.formattedValue}`}</span>
+                    </div>
+                  </div>
+                );
+              }
+              if (l.kind === "calc") {
+                return (
+                  <div key={i} className="flex items-start justify-between gap-2">
+                    <span className="font-bold whitespace-nowrap">
+                      {l.op} {l.formattedValue}
+                    </span>
+                    {l.comment && (
+                      <span className="text-right text-[11px] break-words flex-1">
+                        {l.comment}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
+              if (l.raw && l.raw.trim() !== "") {
+                return (
+                  <div key={i} className="text-[11px] break-words">
+                    {l.raw}
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
+
+          <hr className="border-t-2 border-black my-2" />
+          <div className="flex justify-between text-base font-black">
+            <span>SALDO FINAL:</span>
+            <span>
+              {activeCalculadora.saldoFinal < 0 ? "-" : ""}R${" "}
+              {Math.abs(activeCalculadora.saldoFinal).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}
+            </span>
+          </div>
+          <hr className="border-t border-dashed border-black my-2" />
+          <div className="text-center text-[10px] pt-1">
+            Terminal de Caixa
           </div>
         </div>
       )}

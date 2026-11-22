@@ -87,3 +87,22 @@ export interface CaixaTurno {
   saldoInicial: number;
   aberto: boolean;
 }
+
+export interface PrintCalculadoraLinha {
+  type: "entry" | "total" | "divider";
+  kind?: "calc" | "text" | "empty";
+  op?: string;
+  formattedValue?: string;
+  comment?: string;
+  raw?: string;
+  isNeg?: boolean;
+  hasError?: boolean;
+}
+
+export interface PrintCalculadoraData {
+  loja: string;
+  operador: string;
+  dataHora: string;
+  linhas: PrintCalculadoraLinha[];
+  saldoFinal: number;
+}
