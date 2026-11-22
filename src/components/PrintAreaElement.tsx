@@ -474,7 +474,7 @@ export default function PrintAreaElement({
               if (l.type === "total") {
                 return (
                   <div key={i} className="pt-0.5 pb-1">
-                    <div className="border-t-2 border-b border-black h-[3px] mb-1" />
+                    <div className="border-t border-dashed border-gray-400 mb-1" />
                     <div className="flex justify-between font-black text-sm">
                       <span>{l.isNeg ? "-" : "+"} TOTAL:</span>
                       <span>{l.hasError ? "Erro (/0)" : `R$ ${l.formattedValue}`}</span>
@@ -484,12 +484,12 @@ export default function PrintAreaElement({
               }
               if (l.kind === "calc") {
                 return (
-                  <div key={i} className="flex items-start justify-between gap-2">
+                  <div key={i} className="flex items-baseline justify-between gap-2">
                     <span className="font-bold whitespace-nowrap">
                       {l.op} {l.formattedValue}
                     </span>
                     {l.comment && (
-                      <span className="text-right text-[11px] break-words flex-1">
+                      <span className="text-right text-[13px] font-bold break-words flex-1">
                         {l.comment}
                       </span>
                     )}
@@ -505,7 +505,7 @@ export default function PrintAreaElement({
               }
               if (l.raw && l.raw.trim() !== "") {
                 return (
-                  <div key={i} className="text-[11px] break-words">
+                  <div key={i} className="text-sm font-bold break-words">
                     {l.raw}
                   </div>
                 );
