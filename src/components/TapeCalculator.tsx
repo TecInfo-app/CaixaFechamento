@@ -241,11 +241,10 @@ function evaluateTape(rows: TapeRow[]): {
   };
 }
 
+const DEFAULT_INTRO_TEXT = "Fita de Cálculo — digite valores (+ - * /) ou textos";
+
 function createInitialRows(): TapeRow[] {
-  return [
-    { id: uid(), type: "entry", raw: "Fita de Cálculo — digite valores (+ - * /) ou textos" },
-    { id: uid(), type: "entry", raw: "" }
-  ];
+  return [{ id: uid(), type: "entry", raw: "" }];
 }
 
 export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalculatorProps) {
@@ -263,7 +262,12 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter(
+            (r: TapeRow) => !(r.type === "entry" && r.raw.trim() === DEFAULT_INTRO_TEXT)
+          );
+          return cleaned.length > 0 ? cleaned : createInitialRows();
+        }
       }
     } catch {}
     return createInitialRows();
@@ -407,34 +411,42 @@ export default function TapeCalculator({ loja, operador, onPrintTape }: TapeCalc
   }, [commitRows, flashStatus, focusRow]);
 
   const handlePrint = useCallback(() => {
-    const linhas: PrintCalculadoraLinha[] = evaluated.map((row) => {
-      if (row.type === "divider") {
-        return { type: "divider" };
-      }
-      if (row.type === "total") {
-        const val = row.totalValue ?? 0;
-        return {
-          type: "total",
-          isNeg: val < 0,
-          hasError: row.hasDivZeroError,
-          formattedValue: formatTapeNumber(Math.abs(val))
-        };
-      }
-      if (row.parsed?.kind === "calc" && !row.parsed.hasOperatorOnly && row.parsed.op && row.parsed.value !== undefined) {
+    const linhas: PrintCalculadoraLinha[] = evaluated
+      .filter((row) => {
+        if (row.type === "divider" || row.type === "total") return true;
+        if (row.parsed?.hasOperatorOnly) return false;
+        const trimmed = row.raw.trim();
+        if (!trimmed || trimmed === DEFAULT_INTRO_TEXT) return false;
+        return true;
+      })
+      .map((row) => {
+        if (row.type === "divider") {
+          return { type: "divider" };
+        }
+        if (row.type === "total") {
+          const val = row.totalValue ?? 0;
+          return {
+            type: "total",
+            isNeg: val < 0,
+            hasError: row.hasDivZeroError,
+            formattedValue: formatTapeNumber(Math.abs(val))
+          };
+        }
+        if (row.parsed?.kind === "calc" && !row.parsed.hasOperatorOnly && row.parsed.op && row.parsed.value !== undefined) {
+          return {
+            type: "entry",
+            kind: "calc",
+            op: opSymbol(row.parsed.op),
+            formattedValue: formatTapeNumber(row.parsed.value, row.parsed.op),
+            comment: row.parsed.comment || ""
+          };
+        }
         return {
           type: "entry",
-          kind: "calc",
-          op: opSymbol(row.parsed.op),
-          formattedValue: formatTapeNumber(row.parsed.value, row.parsed.op),
-          comment: row.parsed.comment || ""
+          kind: "text",
+          raw: row.raw
         };
-      }
-      return {
-        type: "entry",
-        kind: row.raw.trim() === "" ? "empty" : "text",
-        raw: row.raw
-      };
-    });
+      });
 
     onPrintTape({
       loja: loja || "TERMINAL DE CAIXA",

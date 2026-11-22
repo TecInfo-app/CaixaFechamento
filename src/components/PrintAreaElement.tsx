@@ -457,9 +457,6 @@ export default function PrintAreaElement({
           <div className="text-center font-extrabold text-lg border-b-2 border-black pb-1 uppercase">
             {activeCalculadora.loja}
           </div>
-          <div className="text-center font-black tracking-wide border-b border-black pb-1 uppercase text-xs">
-            FITA DE CALCULADORA
-          </div>
           <div className="space-y-0.5 text-[11px] text-center border-b border-dashed border-black pb-2">
             <p><b>OPERADOR:</b> {activeCalculadora.operador}</p>
             <p><b>DATA/HORA:</b> {activeCalculadora.dataHora}</p>
